@@ -1,0 +1,274 @@
+{
+    "admin": {
+        "password": "",
+        "plan": "free",
+        "messages": 1
+    },
+    "admin@ai.com": {
+        "password": "scrypt:32768:8:1$Ess7l5FIB9Djw8Ae$a405de7dc66086b33a4488d66e9191b5c6253d9c7631e1d3d7235e96e2dc0d29611033508f0cd23e02482462d48dd2562c5ca3315df376ad8c43fe314537bb43",
+        "plan": "ultra",
+        "messages": 1000014,
+        "history": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "ciao"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao! Come posso aiutarti oggi?"
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "ciao"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao di nuovo! Come va? Se hai domande o argomenti di cui vuoi parlare, fammelo sapere!"
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "metti il link per un video su you tube"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Mi dispiace, ma non posso fornire link diretti a contenuti come video su YouTube. Tuttavia, posso aiutarti a trovare quello che cerchi! Fammi sapere quale tipo di video stai cercando e ti dar\u00f2 qualche consiglio su come trovarlo."
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "ciao"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao! Come posso aiutarti oggi?"
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "come stai"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Grazie per aver chiesto! Sono qui e pronto ad assisterti. Come posso aiutarti oggi?"
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "anatomia cuore"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Il cuore \u00e8 un organo muscolare fondamentale del sistema circolatorio e ha il compito di pompare il sangue attraverso il corpo. Ecco una panoramica della sua anatomia:\n\n### Struttura del cuore\n\n1. **Camere cardiache**:\n   - **Atrio destro**: riceve il sangue deossigenato dalle vene cave (superiore e inferiore).\n   - **Atrio sinistro**: riceve il sangue ossigenato dalle vene polmonari.\n   - **Ventricolo destro**: pompa il sangue deossigenato verso i polmoni attraverso l\u2019arteria polmonare.\n   - **Ventricolo sinistro**: pompa il sangue ossigenato al resto del corpo attraverso l\u2019aorta.\n\n2. **Valvole cardiache**:\n   - **Valvola tricuspide**: tra l\u2019atrii destro e il ventricolo destro.\n   - **Valvola pulmonare**: tra il ventricolo destro e l\u2019arteria polmonare.\n   - **Valvola mitrale (o bicuspide)**: tra l\u2019atrio sinistro e il ventricolo sinistro.\n   - **Valvola aortica**: tra il ventricolo sinistro e l\u2019aorta.\n\n3. **Pareti del cuore**:\n   - **Endocardio**: rivestimento interno delle camere cardiache.\n   - **Miocardio**: strato muscolare che permette le contrazioni del cuore.\n   - **Epicardio**: strato esterno che fa parte della membrana pericardica.\n\n4. **Sistema di conduzione**:\n   - Il **nodo senoatriale (SA)**: il pacemaker naturale del cuore che genera impulsi elettrici.\n   - Il **nodo atrioventricolare (AV)**: riceve e ritarda l'impulso per consentire la contrazione degli atri prima dei ventricoli.\n   - **Sistema di conduzione interna**: composto da fascio di His e fibra di Purkinje, si occupa della distribuzione degli impulsi elettrici nei ventricoli.\n\n### Funzione del cuore\nIl cuore funziona attraverso un ciclo chiamato ciclo cardiaco, che comprende:\n- **Sistole**: contrazione dei ventricoli, durante la quale il sangue viene pompato fuori.\n- **Diastole**: rilassamento dei ventricoli, durante la quale il cuore si riempie di sangue.\n\nSe hai bisogno di ulteriori dettagli o un argomento specifico sul cuore, fammi sapere!"
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "ciao"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao di nuovo! Come posso aiutarti oggi?"
+            },
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "analizzamela"
+                    }
+                ]
+            },
+            {
+                "role": "assistant",
+                "content": "Certo! Posso offrirti un'analisi pi\u00f9 dettagliata sulla struttura, la funzione o qualsiasi aspetto specifico del cuore che ti interessa. \n\n### Analisi del cuore\n\n#### 1. **Struttura**:\n- **Camere cardiache**:\n  - Gli atri e i ventricoli hanno pareti di spessore diverso, con i ventricoli che hanno una muscolatura pi\u00f9 spessa per pompare il sangue a pressione pi\u00f9 alta.\n  - L'atrio sinistro e il ventricolo sinistro gestiscono il sangue ossigenato, mentre l'atrio destro e il ventricolo destro si occupano del sangue deossigenato.\n\n- **Valvole**:\n  - Le valvole cardiache garantiscono un flusso unidirezionale del sangue. Problemi nelle valvole (come stenosi o insufficienza) possono portare a gravi patologie cardiache.\n\n- **Sistema di conduzione**:\n  - Il nodo SA funge da pacemaker naturale e mantiene il battito cardiaco regolare. Il corretto funzionamento di questo sistema \u00e8 cruciale per un'efficace contrazione cardiaca.\n\n#### 2. **Funzione**:\n- **Ciclo cardiaco**:\n  - Il ciclo cardiaco \u00e8 un processo costante che pu\u00f2 essere suddiviso in fase di contrazione (sistole) e rilassamento (diastole). In media, il cuore di un adulto si contrae circa 60-100 volte al minuto.\n  \n- **Ossigenazione del sangue**:\n  - Il cuore \u00e8 centrale nel trasporto di ossigeno e nutrienti a tutte le cellule del corpo. Il sangue deossigenato viene portato ai polmoni per essere ossigenato, mentre il sangue ossigenato viene distribuito ai tessuti.\n\n#### 3. **Importanza cliniica**:\n- Malattie cardiovascolari sono una delle principali cause di morte nel mondo. Comprendere la struttura e la funzione del cuore \u00e8 essenziale per la diagnosi e il trattamento di condizioni come:\n  - **Infarto miocardico**: il blocco del flusso sanguigno al cuore.\n  - **Insufficienza cardiaca**: quando il cuore non riesce a pompare sangue efficacemente.\n  - **Aritmie**: disturbi del ritmo cardiaco.\n\nQuesta \u00e8 una panoramica analitica del cuore. Se hai domande pi\u00f9 specifiche o aspetti particolari che desideri approfondire, fammi sapere!"
+            },
+            {
+                "role": "user",
+                "content": "ciao"
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao di nuovo! Come posso aiutarti oggi?"
+            }
+        ]
+    },
+    "valendinobenoit@gmail.com": {
+        "password": "scrypt:32768:8:1$fklb5b3McT6Txh3D$ad227845d51abb33fad4e38804c2121fc2d7891c7337099626bb22241aeb67e1a896fed04a690fd5feaf836c437af777fe9a0d7d8dce3fa9613a3de870295ba8",
+        "plan": "free",
+        "messages": 2
+    },
+    "inobenoit@gmail.com": {
+        "password": "scrypt:32768:8:1$RYdzGkYXwXzsh1eQ$7721555715cde6299353f7a1828d3dff5641e88963a3f98f586e3e24fd6ff9dd2a4cbdb231e36b3d19b5263b31b3b3685f020fd00ffbabdfe239c844c5dd1789",
+        "messages": 0,
+        "history": []
+    },
+    "valendinoantonio3@gmail.com": {
+        "password": "scrypt:32768:8:1$Kcb7fwH4ExaTtJo8$a13bbcfcb11299ee48fb32ddd88ee5a9602f644b360bb187cbb90c091e716266979ebbc480767646276db7bb0d72a4e3ab5fd6c3b6ee6dd22ed11d8fc0b4dd69",
+        "messages": 8,
+        "history": [
+            {
+                "role": "user",
+                "content": "I giorni mancano alla fine della scuola."
+            },
+            {
+                "role": "assistant",
+                "content": "Mi dispiace, ma non posso fornirti informazioni su eventuali date specifiche. Potresti per\u00f2 avere una stima generale della situazione. Se sei uno studente di una scuola italiana, la durata della pausa estiva (luglio-agosto) varia a seconda dell'anno scolastico e del tipo di scuola. In generale, la pausa estiva dura circa 12 settimane.\n\nSe vuoi avere informazioni pi\u00f9 precise, potresti chiedere al tuo insegnante o alla tua scuola di fornirti la data esatta della fine della scuola."
+            },
+            {
+                "role": "user",
+                "content": "Stima generale."
+            },
+            {
+                "role": "assistant",
+                "content": "La fine della scuola in Italia si verifica generalmente a giugno. La data esatta pu\u00f2 variare a seconda dell'anno scolastico e del tipo di scuola, ma in generale possiamo dire che la pausa estiva comincia a met\u00e0 giugno e dura fino a settembre.\n\nConsiderando che il tuo messaggio sembra essere pubblicato nel mese di aprile, possiamo fare una stima generale. Se la fine della scuola si verifica a met\u00e0 giugno, allora ci sono circa 60-70 giorni tra la data del tuo messaggio e la fine della scuola."
+            },
+            {
+                "role": "user",
+                "content": "Finiamo il 31 di maggio?"
+            },
+            {
+                "role": "assistant",
+                "content": "S\u00ec, se la fine della scuola si verifica il 31 maggio, allora ci sono circa 35 giorni tra la data del tuo messaggio e la fine della scuola. \n\nQuindi, se oggi \u00e8 il 19 aprile, ci sono circa 16 giorni di lezioni e 19 giorni di pausa prima della fine della scuola."
+            },
+            {
+                "role": "user",
+                "content": "grazie"
+            },
+            {
+                "role": "assistant",
+                "content": "Prego! Spero che queste informazioni ti siano state utili. Buona fine dell'anno scolastico!"
+            },
+            {
+                "role": "user",
+                "content": "ciao come stai adesso"
+            },
+            {
+                "role": "assistant",
+                "content": "Sono solo un programma di intelligenza artificiale, quindi non ho sentimenti o emozioni come gli esseri umani. Sono qui per aiutarti e fornirti informazioni, quindi sono sempre pronto e funzionante!"
+            },
+            {
+                "role": "user",
+                "content": "calma"
+            },
+            {
+                "role": "assistant",
+                "content": "Mi scuso se sono sembrato troppo formale! Sono solo un programma, ma posso cercare di essere pi\u00f9 cordiale e informale. Come vuoi che sia, allora?"
+            },
+            {
+                "role": "user",
+                "content": "adesso mi ha Fatto stare male"
+            },
+            {
+                "role": "assistant",
+                "content": "Mi dispiace! Non avevo intenzione di farti stare male. Sembra che la mia risposta sia stata un po' troppo forte. Cerca di non preoccuparti, sono solo un programma, non c'\u00e8 nulla da prendere sul serio. Se vuoi, possiamo ricominciare da capo e parlare di qualcosa di pi\u00f9 leggero."
+            },
+            {
+                "role": "user",
+                "content": "si ok"
+            },
+            {
+                "role": "assistant",
+                "content": "S\u00ec, allora! Come vuoi iniziare? Volevi parlare di qualcosa in particolare o solo chiacchierare un po'?"
+            }
+        ]
+    },
+    "benny": {
+        "password": "scrypt:32768:8:1$cgeZTUiIpPO6qqtm$6b3e28219de4ea1b919f9fbfe3023181e260e75bdab91240a681fb0a34b7baddc4ac26daf2ef5f87f70b26b61dde6b9122fd557b9dc00f7d0e1699a76afec772",
+        "messages": 5,
+        "history": [
+            {
+                "role": "user",
+                "content": "ciao"
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao! Come stai oggi?"
+            },
+            {
+                "role": "user",
+                "content": "quando si festeggia natale"
+            },
+            {
+                "role": "assistant",
+                "content": "Natale si festeggia il 25 dicembre di ogni anno, in ricordo della nascita di Ges\u00f9 Cristo. \u00c8 una delle festivit\u00e0 pi\u00f9 importanti dell'anno in molti paesi, soprattutto in quelli di tradizione cristiana.\n\nTuttavia, \u00e8 interessante notare che la data esatta della nascita di Ges\u00f9 non \u00e8 nota con precisione e potrebbe essere accaduta in un momento diverso dell'anno. La chiesa cattolica ha scelto di festeggiare Natale il 25 dicembre per diversi motivi:\n\n- La festa romana di Saturno: i Romani celebravano il solstizio d'estate (che cade il 21 o 22 giugno) con la festa di Saturno, dove si scambiavano doni e si celebravano i riti. I primi cristiani scelsero di festeggiare Natale il 25 dicembre per sottolineare la vittoria del Cristianesimo sul paganesimo romano.\n- La festa greca di Dioniso: i Greci celebravano il 25 dicembre la festa di Dioniso, dio del vino e della fertilit\u00e0. I primi cristiani scelsero di festeggiare Natale in questo momento per sottolineare la vittoria del Cristianesimo sulla religione greca.\n\nIn ogni caso, la data del 25 dicembre \u00e8 stata scelta per celebrare la nascita di Ges\u00f9 Cristo e rappresenta un momento importante per la comunit\u00e0 cristiana e per le famiglie in tutto il mondo."
+            },
+            {
+                "role": "user",
+                "content": "dividi in paragrafi"
+            },
+            {
+                "role": "assistant",
+                "content": "**Natale: una festivit\u00e0 importante**\n\nNatale si festeggia il 25 dicembre di ogni anno, in ricordo della nascita di Ges\u00f9 Cristo. \u00c8 una delle festivit\u00e0 pi\u00f9 importanti dell'anno in molti paesi, soprattutto in quelli di tradizione cristiana.\n\n**La data esatta della nascita di Ges\u00f9**\n\nTuttavia, \u00e8 interessante notare che la data esatta della nascita di Ges\u00f9 non \u00e8 nota con precisione e potrebbe essere accaduta in un momento diverso dell'anno. La chiesa cattolica ha scelto di festeggiare Natale il 25 dicembre per diversi motivi.\n\n**Perch\u00e9 si festeggia Natale il 25 dicembre**\n\nLa chiesa cattolica ha scelto di festeggiare Natale il 25 dicembre per diversi motivi. In particolare, la festa romana di Saturno (che si celebrava il solstizio d'estate, intorno al 21 o 22 giugno) e la festa greca di Dioniso (che si celebrava il 25 dicembre) sono stati due dei motivi principali per scegliere questa data.\n\n**La vittoria del Cristianesimo sul paganesimo**\n\nI primi cristiani scelsero di festeggiare Natale il 25 dicembre per sottolineare la vittoria del Cristianesimo sul paganesimo romano. In questo modo, essi intendevano dimostrare che il Cristianesimo era una religione pi\u00f9 potente e pi\u00f9 importante di quelle pagane.\n\n**La celebrazione di Natale**\n\nIn ogni caso, la data del 25 dicembre \u00e8 stata scelta per celebrare la nascita di Ges\u00f9 Cristo e rappresenta un momento importante per la comunit\u00e0 cristiana e per le famiglie in tutto il mondo. Natale \u00e8 una festivit\u00e0 che si caratterizza per la sua atmosfera di pace, amore e solidariet\u00e0, e che rappresenta un'opportunit\u00e0 per riflettere sui valori della vita e sulla nostra relazione con gli altri."
+            },
+            {
+                "role": "user",
+                "content": "Dimmi tra quanto finisce la scuola?"
+            },
+            {
+                "role": "assistant",
+                "content": "La data esatta in cui finisce la scuola pu\u00f2 variare a seconda del paese, della regione e del tipo di scuola. In Italia, per esempio, la scuola primaria e secondaria di primo grado finisce solitamente a fine giugno, mentre la scuola secondaria di secondo grado finisce a fine giugno o a fine luglio.\n\nEcco alcune date approssimative in cui finisce la scuola in alcuni paesi:\n\n* **Italia**: \n + Scuola primaria e secondaria di primo grado: fine giugno (solitamente il 30 giugno)\n + Scuola secondaria di secondo grado: fine giugno o fine luglio (solitamente il 30 giugno o il 15 luglio)\n* **Stati Uniti**: \n + Scuola primaria e secondaria: fine maggio o fine giugno (solitamente il 20 maggio o il 30 giugno)\n* **Francia**: \n + Scuola primaria e secondaria: fine giugno (solitamente il 30 giugno)\n* **Germania**: \n + Scuola primaria e secondaria: fine giugno (solitamente il 30 giugno)\n* **Spagna**: \n + Scuola primaria e secondaria: fine giugno (solitamente il 30 giugno)\n\nQueste sono solo alcune delle date approssimative in cui finisce la scuola in alcuni paesi. \u00c8 importante notare che la data esatta in cui finisce la scuola pu\u00f2 variare a seconda della regione e del tipo di scuola."
+            },
+            {
+                "role": "user",
+                "content": "ok"
+            },
+            {
+                "role": "assistant",
+                "content": "Spero che abbia trovato le informazioni utili. Se hai altre domande o hai bisogno di ulteriori chiarimenti, non esitare a chiedere. Buona giornata!"
+            }
+        ]
+    },
+    "annalisa": {
+        "password": "scrypt:32768:8:1$cDWgyTYjO9nw1Noh$e50156d0d8724c7f058b18497c1c38ac9418a672d5a638fc11a3e6071423e80d70a10909a07a66f682b1974fc39e94107852bc83b30608d09974607639f554b2",
+        "messages": 2,
+        "history": [
+            {
+                "role": "user",
+                "content": "Clima oggi a Dubai?"
+            },
+            {
+                "role": "assistant",
+                "content": "Non ho informazioni in tempo reale sul clima di Dubai. Tuttavia, posso darti un'idea generale del clima di Dubai. Dubai \u00e8 una citt\u00e0 emiratina nella parte settentrionale dei Paesi Arabi Uniti, nota per il suo clima desertico caldo e umido.\n\nIl clima di Dubai \u00e8 caratterizzato da:\n\n- Inverno: Dai 18\u00b0C ai 25\u00b0C (gennaio-febbraio)\n- Primavera: Dai 22\u00b0C ai 32\u00b0C (marzo-maggio)\n- Estate: Dai 32\u00b0C ai 40\u00b0C (giugno-settembre)\n- Autunno: Dai 22\u00b0C ai 32\u00b0C (ottobre-dicembre)\n\nDubai pu\u00f2 essere caldo quasi per tutto l'anno e l'umidit\u00e0 \u00e8 alta, specialmente durante l'estate. \u00c8 importante indossare abbigliamento leggero e protettivo dal sole, e bere abbondante acqua per rimanere idratato.\n\nPer avere informazioni pi\u00f9 aggiornate sul clima di Dubai, ti consiglio di visitare un sito web meteorologico come AccuWeather o la BBC Weather."
+            },
+            {
+                "role": "user",
+                "content": "ciao"
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao! Come posso aiutarti oggi?"
+            }
+        ]
+    }
+}

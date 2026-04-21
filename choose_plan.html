@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Ultra ∞ - Scegli Piano</title>
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont;
+    background: radial-gradient(circle at top,#0f172a,#020617);
+    color:white;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+/* CONTAINER */
+.container{
+    text-align:center;
+    animation:fadeIn 1s ease;
+}
+
+@keyframes fadeIn{
+    from{opacity:0; transform:translateY(20px);}
+    to{opacity:1;}
+}
+
+h1{
+    font-size:40px;
+    margin-bottom:10px;
+    background: linear-gradient(90deg,#00e0ff,#007aff);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+
+p{
+    opacity:0.7;
+    margin-bottom:40px;
+}
+
+/* CARDS */
+.cards{
+    display:flex;
+    gap:30px;
+    flex-wrap:wrap;
+    justify-content:center;
+}
+
+.card{
+    width:260px;
+    padding:30px;
+    border-radius:25px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(30px);
+    transition:0.4s;
+    position:relative;
+    overflow:hidden;
+}
+
+/* glow effect */
+.card::before{
+    content:"";
+    position:absolute;
+    width:200%;
+    height:200%;
+    background: radial-gradient(circle,#00e0ff,transparent);
+    top:-50%;
+    left:-50%;
+    opacity:0;
+    transition:0.5s;
+}
+
+.card:hover::before{
+    opacity:0.2;
+}
+
+.card:hover{
+    transform:scale(1.07);
+    box-shadow:0 0 40px rgba(0,200,255,0.4);
+}
+
+/* PREMIUM CARD */
+.premium{
+    border:2px solid #00e0ff;
+}
+
+/* TEXT */
+.price{
+    font-size:32px;
+    margin:10px 0;
+}
+
+ul{
+    text-align:left;
+    padding:0;
+    list-style:none;
+}
+
+ul li{
+    margin:8px 0;
+    opacity:0.8;
+}
+
+/* BUTTON */
+button{
+    margin-top:20px;
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:15px;
+    cursor:pointer;
+    font-size:15px;
+    transition:0.3s;
+}
+
+/* FREE */
+.free-btn{
+    background:#1e293b;
+}
+
+.free-btn:hover{
+    background:#334155;
+}
+
+/* PREMIUM */
+.pay-btn{
+    background: linear-gradient(135deg,#007aff,#00e0ff);
+}
+
+.pay-btn:hover{
+    transform:scale(1.05);
+}
+
+/* BADGE */
+.badge{
+    position:absolute;
+    top:15px;
+    right:15px;
+    background:#00e0ff;
+    color:black;
+    padding:5px 10px;
+    border-radius:10px;
+    font-size:12px;
+}
+
+/* PULSE */
+@keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(0,200,255,0.6);}
+    70%{box-shadow:0 0 0 20px rgba(0,200,255,0);}
+    100%{box-shadow:0 0 0 0 rgba(0,200,255,0);}
+}
+
+.premium{
+    animation:pulse 2s infinite;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🚀 Inizia con AI Ultra</h1>
+<p>Sblocca il vero potere dell'intelligenza artificiale</p>
+
+<div class="cards">
+
+<!-- FREE -->
+<div class="card">
+    <h2>Free</h2>
+    <div class="price">0€</div>
+
+    <ul>
+        <li>✔ 200 messaggi</li>
+        <li>✔ Chat base</li>
+        <li>❌ No immagini</li>
+        <li>❌ AI limitata</li>
+    </ul>
+
+    <button class="free-btn" onclick="startFree()">
+        Inizia gratis
+    </button>
+</div>
+
+<!-- PREMIUM -->
+<div class="card premium">
+    <div class="badge">🔥 POPOLARE</div>
+
+    <h2>Premium</h2>
+    <div class="price">8€/mese</div>
+
+    <ul>
+        <li>✔ Messaggi illimitati</li>
+        <li>✔ Upload immagini</li>
+        <li>✔ AI avanzata</li>
+        <li>✔ Risposte più veloci</li>
+    </ul>
+
+    <button class="pay-btn" onclick="pay()">
+        Vai Premium ⚡
+    </button>
+</div>
+
+</div>
+
+</div>
+
+<script>
+function startFree(){
+    window.location.href = "/start-free";
+}
+
+function pay(){
+    window.location.href = "/create-checkout-session/price_GO";
+}
+</script>
+
+</body>
+</html>

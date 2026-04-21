@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Registrazione</title>
+
+<style>
+body{
+    margin:0;
+    font-family:-apple-system, BlinkMacSystemFont, sans-serif;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#020617;
+    color:white;
+}
+
+.box{
+    width:350px;
+    padding:40px;
+    border-radius:20px;
+    background:rgba(255,255,255,0.05);
+    backdrop-filter:blur(30px);
+}
+
+h2{text-align:center;margin-bottom:20px}
+
+input{
+    width:100%;
+    padding:12px;
+    margin-bottom:15px;
+    border:none;
+    border-radius:10px;
+    background:rgba(255,255,255,0.1);
+    color:white;
+}
+
+button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:10px;
+    background:#4cc9f0;
+    color:white;
+    cursor:pointer;
+}
+
+a{
+    display:block;
+    margin-top:15px;
+    text-align:center;
+    color:#4cc9f0;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+<h2>Registrati</h2>
+
+<form action="/register" method="POST">
+    <input name="email" placeholder="Email" required>
+    <input type="password" name="password" placeholder="Password" required>
+    <button>Crea Account</button>
+</form>
+
+<a href="/">Torna al login</a>
+</div>
+
+</body>
+</html>

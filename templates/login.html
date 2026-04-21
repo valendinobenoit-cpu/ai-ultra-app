@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>AI Ultra Login</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    height: 100vh;
+    background: linear-gradient(-45deg, #020617, #0f172a, #020617);
+    background-size: 400% 400%;
+    animation: gradientMove 12s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.container {
+    position: relative;
+    width: 360px;
+    padding: 40px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(40px);
+    box-shadow: 0 0 60px rgba(0,0,0,0.7);
+    animation: fadeUp 0.6s ease;
+}
+
+.logo {
+    font-size: 28px;
+    font-weight: 800;
+    text-align: center;
+    margin-bottom: 30px;
+    background: linear-gradient(90deg,#00e0ff,#007aff,#00e0ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* INPUT */
+.input-group {
+    margin-bottom: 20px;
+    position: relative;
+}
+
+input {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    outline: none;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    transition: 0.3s;
+}
+
+input:focus {
+    box-shadow: 0 0 10px rgba(0,200,255,0.6);
+}
+
+/* TOGGLE PASSWORD */
+.eye {
+    position: absolute;
+    right: 10px;
+    top: 12px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* BUTTON */
+button {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+    background: linear-gradient(135deg,#007aff,#00e0ff);
+    color: white;
+    transition: 0.3s;
+}
+
+button:hover {
+    transform: scale(1.03);
+}
+
+/* LOADING */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* ERROR */
+.error {
+    color: #ff4d4d;
+    font-size: 13px;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+/* ADMIN */
+.admin {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+/* LINK */
+.link {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 14px;
+}
+
+.link a {
+    color: #00e0ff;
+    text-decoration: none;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="logo">✨ AI Ultra</div>
+
+    <!-- ERRORE -->
+    <div id="errorBox" class="error"></div>
+
+    <!-- LOGIN -->
+    <form action="/login" method="POST" onsubmit="loading()">
+        <div class="input-group">
+            <input name="email" placeholder="Email" required>
+        </div>
+
+        <div class="input-group">
+            <input id="password" type="password" name="password" placeholder="Password" required>
+            <span class="eye" onclick="toggle()">👁️</span>
+        </div>
+
+        <button id="btn">Accedi</button>
+    </form>
+
+    <!-- ADMIN -->
+    <div class="admin">
+        <form action="/admin-code" method="POST">
+            <div class="input-group">
+                <input name="code" placeholder="Codice Admin">
+            </div>
+            <button>Entra come Admin 👑</button>
+        </form>
+    </div>
+
+    <div class="link">
+        Non hai un account? <a href="/register-page">Registrati</a>
+    </div>
+
+</div>
+
+<script>
+
+/* 👁️ PASSWORD SHOW */
+function toggle(){
+    let p = document.getElementById("password")
+    p.type = p.type === "password" ? "text" : "password"
+}
+
+/* ⏳ LOADING BUTTON */
+function loading(){
+    let btn = document.getElementById("btn")
+    btn.innerText = "Accesso..."
+    btn.classList.add("loading")
+}
+
+/* ❌ ERRORE DA URL (?error=) */
+const params = new URLSearchParams(window.location.search)
+if(params.get("error")){
+    document.getElementById("errorBox").innerText = "Credenziali errate"
+}
+
+</script>
+
+</body>
+</html>

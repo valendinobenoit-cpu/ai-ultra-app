@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>AI Plans</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+<h1>🚀 AI Business Plans</h1>
+
+<div class="cards">
+
+    <div class="card">
+        <h2>Basic</h2>
+        <p>10€ / mese</p>
+        <a href="/checkout/10">
+            <button>Compra</button>
+        </a>
+    </div>
+
+    <div class="card">
+        <h2>Pro</h2>
+        <p>20€ / mese</p>
+        <a href="/checkout/20">
+            <button>Compra</button>
+        </a>
+    </div>
+
+    <div class="card">
+        <h2>Business</h2>
+        <p>50€ / mese</p>
+        <a href="/checkout/50">
+            <button>Compra</button>
+        </a>
+    </div>
+
+</div>
+
+<hr>
+
+<!-- 🔐 ACCESSO AMMINISTRATORE -->
+<div style="text-align:center; margin-top:40px;">
+    <h2>🔐 Accesso amministratore BV</h2>
+
+    <form action="/admin-code" method="POST">
+        <input type="password" name="code" placeholder="Inserisci codice segreto" required>
+        <br><br>
+        <button type="submit">Accedi</button>
+    </form>
+</div>
+
+</body>
+</html>
