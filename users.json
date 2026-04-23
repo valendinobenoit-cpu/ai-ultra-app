@@ -251,7 +251,7 @@
     },
     "annalisa": {
         "password": "scrypt:32768:8:1$cDWgyTYjO9nw1Noh$e50156d0d8724c7f058b18497c1c38ac9418a672d5a638fc11a3e6071423e80d70a10909a07a66f682b1974fc39e94107852bc83b30608d09974607639f554b2",
-        "messages": 2,
+        "messages": 3,
         "history": [
             {
                 "role": "user",
@@ -268,7 +268,20 @@
             {
                 "role": "assistant",
                 "content": "Ciao! Come posso aiutarti oggi?"
+            },
+            {
+                "role": "user",
+                "content": "ciao"
+            },
+            {
+                "role": "assistant",
+                "content": "Ciao! Qualcosa di nuovo da discutere?"
             }
         ]
+    },
+    "benoit": {
+        "password": "scrypt:32768:8:1$yav5IthoyrQYm7v9$a2b0fbafeb45684eafe1d9d2942bd58faced3c109c813ed004d9df258208855239cc19339598db5fc5b937b9e7dadde464bb7737d46f9169e5ede9cf1f967226",
+        "messages": 0,
+        "history": []
     }
 }

@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, jsonify, redirect, session
+from flask import Flask, render_template, request, jsonify, redirect, session, send_file
 import requests, os, json, base64
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
+from gtts import gTTS
+import uuid
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -18,7 +20,7 @@ app.config.update(
 )
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")  # 🔐 admin code
+ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
 # ---------------- DATABASE ----------------
@@ -56,6 +58,23 @@ def home():
         return redirect("/dashboard")
     return render_template("login.html")
 
+# ---------------- ADMIN PAGE ----------------
+@app.route("/admin-code", methods=["GET", "POST"])
+def admin_code_page():
+    if request.method == "POST":
+        code = request.form.get("admin_code", "").strip()
+
+        print(f"CODE: {code}")
+        if code == ADMIN_CODE:
+            session.clear()
+            session["admin"] = True
+            session.permanent = True
+            return redirect("/dashboard")
+
+        return "❌ Codice admin errato"
+
+    return render_template("admin.html")
+
 # ---------------- REGISTER PAGE ----------------
 @app.route("/register-page")
 def register_page():
@@ -91,16 +110,7 @@ def login():
 
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "").strip()
-    admin_code = request.form.get("admin_code", "").strip()
 
-    # 🔐 LOGIN ADMIN
-    if admin_code and admin_code == ADMIN_CODE:
-        session.clear()
-        session["admin"] = True
-        session.permanent = True
-        return redirect("/dashboard")
-
-    # 👤 LOGIN UTENTE
     if email in users and check_password_hash(users[email]["password"], password):
         session.clear()
         session["user"] = email
@@ -121,42 +131,19 @@ def dashboard():
 def chat():
     users = load_users()
 
-    # 🔥 ADMIN → no salvataggio
     if "admin" in session:
         history = []
         user = {"messages": 0}
     else:
         user = users.get(session["user"])
-        if not user:
-            return jsonify({"response": "❌ Utente non trovato"})
         history = user.get("history", [])
 
     prompt = request.form.get("prompt", "")
-    image = request.files.get("image")
 
-    if not prompt and not image:
-        return jsonify({"response": "❌ Scrivi qualcosa o invia immagine"})
+    if not prompt:
+        return jsonify({"response": "❌ Scrivi qualcosa"})
 
-    if prompt:
-        history.append({
-            "role": "user",
-            "content": prompt
-        })
-
-    if image:
-        img64 = base64.b64encode(image.read()).decode("utf-8")
-        history.append({
-            "role": "user",
-            "content": [
-                {"type": "text", "text": "Analizza questa immagine"},
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{img64}"
-                    }
-                }
-            ]
-        })
+    history.append({"role": "user", "content": prompt})
 
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -165,48 +152,61 @@ def chat():
 
     payload = {
         "model": "llama-3.1-8b-instant",
-        "messages": history[-10:],
-        "temperature": 0.7
+        "messages": history[-10:]
     }
 
-    try:
-        r = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=payload
-        )
+    r = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers=headers,
+        json=payload
+    )
 
-        result = r.json()
-        reply = result["choices"][0]["message"]["content"]
+    result = r.json()
+    reply = result["choices"][0]["message"]["content"]
 
-        history.append({
-            "role": "assistant",
-            "content": reply
-        })
+    history.append({"role": "assistant", "content": reply})
 
-        # 🔥 salva solo utenti normali
-        if "admin" not in session:
-            user["history"] = history
-            user["messages"] += 1
-            users[session["user"]] = user
-            save_users(users)
+    if "admin" not in session:
+        user["history"] = history
+        user["messages"] += 1
+        users[session["user"]] = user
+        save_users(users)
 
-        return jsonify({"response": reply})
+    return jsonify({"response": reply})
 
-    except Exception as e:
-        return jsonify({"response": f"❌ Errore AI: {str(e)}"})
-
-# ---------------- RESET ----------------
-@app.route("/reset")
+# ---------------- VOICE CHAT ----------------
+@app.route("/voice-chat", methods=["POST"])
 @login_required
-def reset():
-    if "admin" in session:
-        return redirect("/dashboard")
+def voice_chat():
+    text = request.form.get("text", "")
 
-    users = load_users()
-    users[session["user"]]["history"] = []
-    save_users(users)
-    return redirect("/dashboard")
+    if not text:
+        return "❌ Nessun testo"
+
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "llama-3.1-8b-instant",
+        "messages": [{"role": "user", "content": text}]
+    }
+
+    r = requests.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        headers=headers,
+        json=payload
+    )
+
+    reply = r.json()["choices"][0]["message"]["content"]
+
+    # 🎤 TEXT → VOICE
+    filename = f"audio_{uuid.uuid4().hex}.mp3"
+    tts = gTTS(reply, lang="it")
+    tts.save(filename)
+
+    return send_file(filename, mimetype="audio/mpeg")
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
