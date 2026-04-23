@@ -10,19 +10,24 @@
 <style>
 :root{
 --primary:#4cc9f0;
---bg1:#020617;
+--bg:#020617;
 --bg2:#0f172a;
 --glass:rgba(255,255,255,0.05);
 --border:rgba(255,255,255,0.1);
 }
 
+/* RESET */
+*{box-sizing:border-box;margin:0;padding:0}
+
+/* BODY */
 body{
 font-family:"Inter";
-margin:0;
-color:white;
 background:linear-gradient(-45deg,#020617,#0f172a,#020617,#1e293b);
 background-size:400% 400%;
 animation:bg 15s ease infinite;
+color:white;
+height:100vh;
+display:flex;
 }
 
 @keyframes bg{
@@ -31,26 +36,22 @@ animation:bg 15s ease infinite;
 100%{background-position:0% 50%}
 }
 
-/* LAYOUT */
-.container{
-display:flex;
-height:100vh;
-}
-
 /* SIDEBAR */
 .sidebar{
 width:260px;
 background:var(--glass);
-backdrop-filter:blur(25px);
+backdrop-filter:blur(20px);
 border-right:1px solid var(--border);
 padding:20px;
-transition:.3s;
+display:flex;
+flex-direction:column;
+gap:20px;
 }
 
 .logo{
 color:var(--primary);
 font-size:20px;
-margin-bottom:20px;
+font-weight:600;
 }
 
 .menu a{
@@ -58,13 +59,13 @@ display:block;
 padding:10px;
 border-radius:10px;
 color:#94a3b8;
-margin-bottom:6px;
-text-decoration:none;
+transition:.2s;
 }
 
 .menu a:hover{
+background:rgba(255,255,255,0.05);
 color:white;
-background:rgba(255,255,255,0.1);
+transform:translateX(5px);
 }
 
 /* MAIN */
@@ -72,6 +73,7 @@ background:rgba(255,255,255,0.1);
 flex:1;
 display:flex;
 flex-direction:column;
+height:100vh;
 }
 
 /* CHAT */
@@ -80,27 +82,32 @@ flex:1;
 overflow-y:auto;
 padding:20px;
 max-width:900px;
-margin:auto;
 width:100%;
+margin:auto;
 }
 
 /* MSG */
 .msg{
-display:flex;
 margin-bottom:15px;
+display:flex;
 }
 
 .bubble{
-padding:12px;
+padding:14px;
 border-radius:14px;
-max-width:75%;
+max-width:80%;
 line-height:1.5;
+animation:fade .3s;
+}
+
+@keyframes fade{
+from{opacity:0;transform:translateY(10px)}
 }
 
 /* USER */
+.user{justify-content:flex-end;}
 .user .bubble{
-margin-left:auto;
-background:#2563eb;
+background:linear-gradient(135deg,#2563eb,#1d4ed8);
 }
 
 /* BOT */
@@ -111,43 +118,56 @@ border:1px solid var(--border);
 
 /* INPUT */
 .input-wrapper{
-position:sticky;
-bottom:0;
 padding:15px;
 background:linear-gradient(to top,#020617,transparent);
 }
 
 .input-box{
 display:flex;
-gap:8px;
+gap:10px;
+max-width:900px;
+margin:auto;
 background:var(--glass);
 border:1px solid var(--border);
-border-radius:25px;
-padding:8px;
+border-radius:20px;
+padding:10px;
 }
 
 input{
 flex:1;
-background:transparent;
+background:none;
 border:none;
 color:white;
 outline:none;
-padding:10px;
+font-size:16px;
 }
 
 /* BUTTON */
 button{
 border:none;
-cursor:pointer;
 padding:10px;
 border-radius:10px;
-background:transparent;
+cursor:pointer;
+background:rgba(255,255,255,0.05);
 color:white;
 }
 
 .send{
 background:var(--primary);
 color:black;
+font-weight:bold;
+}
+
+button:hover{
+transform:scale(1.1);
+}
+
+/* LOADER */
+.loader{
+text-align:center;
+color:#aaa;
+margin-bottom:10px;
+display:none;
 }
 
 /* MOBILE */
@@ -158,48 +178,40 @@ position:fixed;
 left:-260px;
 top:0;
 height:100%;
-z-index:100;
+z-index:10;
+transition:.3s;
 }
 
-.sidebar.open{
+.sidebar.active{
 left:0;
 }
 
 .main{
-margin-left:0;
+width:100%;
 }
 
-.menu-toggle{
-display:block;
+.menu-btn{
 position:fixed;
 top:10px;
 left:10px;
-background:var(--primary);
-color:black;
+z-index:20;
+background:var(--glass);
 padding:10px;
 border-radius:10px;
-z-index:200;
-}
-
-}
-
-@media(min-width:769px){
-.menu-toggle{
-display:none;
 }
 }
 
+/* MIC */
 .recording{
-box-shadow:0 0 15px red;
+box-shadow:0 0 20px red !important;
 }
 </style>
 </head>
 
 <body>
 
-<button class="menu-toggle" onclick="toggleMenu()">☰</button>
-
-<div class="container">
+<!-- MENU MOBILE -->
+<button class="menu-btn" onclick="toggleMenu()">☰</button>
 
 <div class="sidebar" id="sidebar">
 <div class="logo">AI Ultra</div>
@@ -218,22 +230,20 @@ box-shadow:0 0 15px red;
 <div class="main">
 
 <div class="chat" id="chat"></div>
+<div class="loader" id="loader">AI sta pensando...</div>
 
 <div class="input-wrapper">
 <div class="input-box">
-
 <input id="input" placeholder="Scrivi..." autocomplete="off">
 
+<button onclick="file.click()">📷</button>
 <input type="file" id="file" hidden>
 
-<button onclick="file.click()">📷</button>
 <button id="micBtn" onclick="toggleMic()">🎤</button>
 <button class="send" onclick="send()">➤</button>
-
 </div>
 </div>
 
-</div>
 </div>
 
 <script>
@@ -241,7 +251,7 @@ let selectedImage=null;
 
 /* MENU MOBILE */
 function toggleMenu(){
-sidebar.classList.toggle("open");
+sidebar.classList.toggle("active");
 }
 
 /* MESSAGE */
@@ -260,7 +270,7 @@ let i=0;
 function t(){
 if(i<text.length){
 el.innerHTML+=text[i++];
-setTimeout(t,10);
+setTimeout(t,8);
 }
 }
 t();
@@ -275,13 +285,14 @@ add("user",text);
 
 let form=new FormData();
 form.append("prompt",text);
-if(selectedImage) form.append("image",selectedImage);
 
 input.value="";
+loader.style.display="block";
 
 let res=await fetch("/chat",{method:"POST",body:form});
 let data=await res.json();
 
+loader.style.display="none";
 add("bot",data.response);
 }
 
@@ -289,11 +300,6 @@ add("bot",data.response);
 input.addEventListener("keypress",e=>{
 if(e.key==="Enter") send();
 });
-
-/* IMAGE */
-file.onchange=()=>{
-selectedImage=file.files[0];
-};
 
 /* VOICE */
 let rec;
