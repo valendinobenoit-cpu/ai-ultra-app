@@ -23,7 +23,6 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
-# 🔥 DEBUG AVVIO
 print("===== DEBUG AVVIO =====")
 print("API KEY:", GROQ_API_KEY)
 print("=======================")
@@ -53,7 +52,7 @@ def login_required(f):
 
 def get_user():
     if "admin" in session:
-        return {"role": "admin"}
+        return {"role": "admin", "messages": 0}
     return load_users().get(session.get("user"))
 
 # ---------------- ROUTES ----------------
@@ -117,18 +116,11 @@ def chat():
 
     users = load_users()
 
-    # 🔥 DEBUG SESSION
-    print("SESSION USER:", session.get("user"))
-    print("USERS:", users)
-
-    # ADMIN
     if "admin" in session:
         user_data = {"messages": 0, "history": []}
-
     else:
         user_data = users.get(session.get("user"))
 
-        # 🔴 FIX CRITICO
         if not user_data:
             return jsonify({"response": "❌ Utente non trovato"})
 
@@ -137,24 +129,30 @@ def chat():
 
     prompt = request.form.get("prompt", "")
     image_file = request.files.get("image")
-    image_b64 = None
 
+    image_b64 = None
     if image_file:
-        image_b64 = base64.b64encode(image_file.read()).decode("utf-8")
+        try:
+            image_b64 = base64.b64encode(image_file.read()).decode("utf-8")
+        except:
+            return jsonify({"response": "❌ Errore immagine"})
 
     if not prompt and not image_b64:
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
-    # MODEL
     model = "llama-3.2-11b-vision-preview" if image_b64 else "llama-3.1-8b-instant"
 
-    # MESSAGGIO
     if image_b64:
         new_msg = {
             "role": "user",
             "content": [
-                {"type": "text", "text": prompt or "Analizza questa immagine"},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
+                {"type": "text", "text": prompt or "Descrivi questa immagine"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_b64}"
+                    }
+                }
             ]
         }
     else:
@@ -163,20 +161,16 @@ def chat():
     user_data["history"].append(new_msg)
 
     try:
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "model": model,
-            "messages": user_data["history"][-10:]
-        }
-
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=payload,
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": model,
+                "messages": user_data["history"][-10:]
+            },
             timeout=20
         )
 
@@ -186,13 +180,10 @@ def chat():
         if r.status_code != 200:
             return jsonify({"response": f"❌ HTTP {r.status_code}: {r.text}"})
 
-        try:
-            res_json = r.json()
-        except:
-            return jsonify({"response": "❌ Risposta non JSON dal server AI"})
+        res_json = r.json()
 
         if "choices" not in res_json:
-            return jsonify({"response": f"❌ Risposta strana: {res_json}"})
+            return jsonify({"response": "❌ Risposta AI non valida"})
 
         message = res_json["choices"][0]["message"]
 
@@ -217,7 +208,7 @@ def chat():
         print("ERRORE:", str(e))
         return jsonify({"response": f"❌ Errore server: {str(e)}"})
 
-# ---------------- VOICE ----------------
+# ---------------- VOICE CHAT ----------------
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
@@ -229,22 +220,21 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        headers = {
-            "Authorization": f"Bearer {GROQ_API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        payload = {
-            "model": "llama-3.1-8b-instant",
-            "messages": [{"role": "user", "content": text}]
-        }
-
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json=payload,
+            headers={
+                "Authorization": f"Bearer {GROQ_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.1-8b-instant",
+                "messages": [{"role": "user", "content": text}]
+            },
             timeout=20
         )
+
+        if r.status_code != 200:
+            return f"❌ HTTP {r.status_code}: {r.text}", 500
 
         res_json = r.json()
         reply = res_json["choices"][0]["message"]["content"]
@@ -254,8 +244,11 @@ def voice_chat():
 
         @after_this_request
         def remove_file(response):
-            if os.path.exists(filename):
-                os.remove(filename)
+            try:
+                if os.path.exists(filename):
+                    os.remove(filename)
+            except:
+                pass
             return response
 
         return send_file(filename, mimetype="audio/mpeg")
