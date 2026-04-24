@@ -19,16 +19,21 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6)
 )
 
-# GOOGLE CONFIG
+# ---------------- GOOGLE CONFIG ----------------
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+
+if not GOOGLE_API_KEY:
+    print("❌ ERRORE: GOOGLE_API_KEY non trovata")
+else:
+    print("✅ API KEY caricata")
+
 genai.configure(api_key=GOOGLE_API_KEY)
+
+# MODELLO SICURO
+MODEL = genai.GenerativeModel("gemini-pro")
 
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
-
-print("===== DEBUG AVVIO =====")
-print("GOOGLE API KEY:", GOOGLE_API_KEY)
-print("=======================")
 
 # ---------------- DATABASE ----------------
 def load_users():
@@ -114,7 +119,7 @@ def dashboard():
 def chat():
 
     if not GOOGLE_API_KEY:
-        return jsonify({"response": "❌ API key Google non configurata"})
+        return jsonify({"response": "❌ API key non configurata"})
 
     users = load_users()
 
@@ -133,29 +138,17 @@ def chat():
     image_file = request.files.get("image")
 
     if not prompt and not image_file:
-        return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
+        return jsonify({"response": "❌ Scrivi qualcosa"})
 
     try:
-        # ✅ MODELLO CORRETTO
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
-
-        # 🖼️ SUPPORTO IMMAGINI
+        # ❌ immagini NON supportate
         if image_file:
-            image_bytes = image_file.read()
+            return jsonify({"response": "⚠️ Le immagini non sono supportate da questo modello"})
 
-            response = model.generate_content([
-                prompt or "Descrivi questa immagine",
-                {
-                    "mime_type": image_file.mimetype,
-                    "data": image_bytes
-                }
-            ])
-        else:
-            response = model.generate_content(prompt)
+        response = MODEL.generate_content(prompt)
 
         reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
 
-        # SALVA STORIA
         user_data["history"].append({"role": "user", "content": prompt})
         user_data["history"].append({"role": "assistant", "content": reply})
 
@@ -183,9 +176,7 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash-latest")
-
-        response = model.generate_content(text)
+        response = MODEL.generate_content(text)
         reply = response.text if hasattr(response, "text") else "Errore risposta"
 
         filename = f"audio_{uuid.uuid4().hex}.mp3"
