@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
-import os, json, base64, uuid
+import os, json, uuid
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -19,7 +19,7 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6)
 )
 
-# GOOGLE API
+# GOOGLE CONFIG
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -137,9 +137,10 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        # 🔥 MODELLO CORRETTO
+        model = genai.GenerativeModel("gemini-1.5-pro")
 
-        # 🖼️ IMMAGINE
+        # 🖼️ IMMAGINI
         if image_file:
             image_bytes = image_file.read()
 
@@ -153,7 +154,7 @@ def chat():
         else:
             response = model.generate_content(prompt)
 
-        reply = response.text
+        reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
 
         # SALVA STORIA
         user_data["history"].append({"role": "user", "content": prompt})
@@ -182,10 +183,10 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-1.5-pro")
         response = model.generate_content(text)
 
-        reply = response.text
+        reply = response.text if hasattr(response, "text") else "Errore risposta"
 
         filename = f"audio_{uuid.uuid4().hex}.mp3"
         gTTS(reply, lang="it").save(filename)
