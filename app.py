@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, session, send_file
+from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
 import requests, os, json, base64
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -51,46 +51,37 @@ def get_user():
         return {"role": "admin"}
     return load_users().get(session.get("user"))
 
-# ---------------- HOME ----------------
+# ---------------- ROUTES ----------------
 @app.route("/")
 def home():
     if "user" in session or "admin" in session:
         return redirect("/dashboard")
     return render_template("login.html")
 
-# ---------------- ADMIN PAGE ----------------
 @app.route("/admin-code", methods=["GET", "POST"])
 def admin_code_page():
     if request.method == "POST":
         code = request.form.get("admin_code", "").strip()
-
-        print(f"CODE: {code}")
         if code == ADMIN_CODE:
             session.clear()
             session["admin"] = True
             session.permanent = True
             return redirect("/dashboard")
-
         return "❌ Codice admin errato"
-
     return render_template("admin.html")
 
-# ---------------- REGISTER PAGE ----------------
 @app.route("/register-page")
 def register_page():
     return render_template("register.html")
 
-# ---------------- REGISTER ----------------
 @app.route("/register", methods=["POST"])
 def register():
     users = load_users()
-
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "").strip()
 
     if not email or not password:
         return "❌ Compila tutti i campi"
-
     if email in users:
         return "❌ Utente già esistente"
 
@@ -99,15 +90,12 @@ def register():
         "messages": 0,
         "history": []
     }
-
     save_users(users)
     return redirect("/")
 
-# ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
 def login():
     users = load_users()
-
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "").strip()
 
@@ -116,7 +104,6 @@ def login():
         session["user"] = email
         session.permanent = True
         return redirect("/dashboard")
-
     return "❌ Login fallito"
 
 # ---------------- DASHBOARD ----------------
@@ -125,22 +112,19 @@ def login():
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT (CON ANALISI IMMAGINI) ----------------
+# ---------------- CHAT LOGIC ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
     users = load_users()
-
+    
     if "admin" in session:
-        history = []
-        user = {"messages": 0}
+        user_data = {"messages": 0, "history": []}
     else:
-        user = users.get(session["user"])
-        history = user.get("history", [])
+        user_data = users.get(session["user"])
+        if "history" not in user_data: user_data["history"] = []
 
     prompt = request.form.get("prompt", "")
-
-    # 📌 NUOVO: gestione immagine
     image_file = request.files.get("image")
     image_b64 = None
 
@@ -151,93 +135,91 @@ def chat():
     if not prompt and not image_b64:
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
-    # 📌 NUOVO: messaggio immagine
+    # Creazione del messaggio
     if image_b64:
-        history.append({
+        new_msg = {
             "role": "user",
             "content": [
                 {"type": "text", "text": prompt if prompt else "Analizza questa immagine"},
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_b64}"
-                    }
-                }
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
             ]
-        })
+        }
     else:
-        history.append({"role": "user", "content": prompt})
+        new_msg = {"role": "user", "content": prompt}
 
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
+    user_data["history"].append(new_msg)
 
-    payload = {
-        "model": "llama-3.2-11b-vision-preview",
-        "messages": history[-10:]
-    }
+    try:
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        payload = {
+            "model": "llama-3.2-11b-vision-preview",
+            "messages": user_data["history"][-10:] # Ultime 10 battute per memoria
+        }
 
-    r = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers=headers,
-        json=payload
-    )
+        r = requests.post("https://groq.com", headers=headers, json=payload)
+        res_json = r.json()
 
-    result = r.json()
-    reply = result["choices"][0]["message"]["content"]
+        if "choices" in res_json:
+            reply = res_json["choices"][0]["message"]["content"]
+            user_data["history"].append({"role": "assistant", "content": reply})
+            
+            if "admin" not in session:
+                user_data["messages"] += 1
+                users[session["user"]] = user_data
+                save_users(users)
+            
+            return jsonify({"response": reply})
+        else:
+            error_msg = res_json.get("error", {}).get("message", "Errore sconosciuto API")
+            return jsonify({"response": f"❌ Errore Groq: {error_msg}"})
 
-    history.append({"role": "assistant", "content": reply})
-
-    if "admin" not in session:
-        user["history"] = history
-        user["messages"] += 1
-        users[session["user"]] = user
-        save_users(users)
-
-    return jsonify({"response": reply})
+    except Exception as e:
+        return jsonify({"response": f"❌ Errore Server: {str(e)}"})
 
 # ---------------- VOICE CHAT ----------------
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
     text = request.form.get("text", "")
+    if not text: return "❌ Nessun testo", 400
 
-    if not text:
-        return "❌ Nessun testo"
+    try:
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        payload = {
+            "model": "llama-3.1-8b-instant",
+            "messages": [{"role": "user", "content": text}]
+        }
 
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
+        r = requests.post("https://groq.com", headers=headers, json=payload)
+        reply = r.json()["choices"][0]["message"]["content"]
 
-    payload = {
-        "model": "llama-3.1-8b-instant",
-        "messages": [{"role": "user", "content": text}]
-    }
+        # Creazione file audio temporaneo
+        filename = f"audio_{uuid.uuid4().hex}.mp3"
+        tts = gTTS(reply, lang="it")
+        tts.save(filename)
 
-    r = requests.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        headers=headers,
-        json=payload
-    )
+        # Elimina il file dopo che è stato inviato al client
+        @after_this_request
+        def remove_file(response):
+            try:
+                if os.path.exists(filename):
+                    os.remove(filename)
+            except Exception as e:
+                app.logger.error(f"Errore eliminazione file: {e}")
+            return response
 
-    reply = r.json()["choices"][0]["message"]["content"]
+        return send_file(filename, mimetype="audio/mpeg")
 
-    filename = f"audio_{uuid.uuid4().hex}.mp3"
-    tts = gTTS(reply, lang="it")
-    tts.save(filename)
+    except Exception as e:
+        return f"❌ Errore: {str(e)}", 500
 
-    return send_file(filename, mimetype="audio/mpeg")
-
-# ---------------- LOGOUT ----------------
 @app.route("/logout")
 @login_required
 def logout():
     session.clear()
     return redirect("/")
 
-# ---------------- START ----------------
 if __name__ == "__main__":
     app.run(debug=True)
+
 
