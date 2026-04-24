@@ -125,7 +125,7 @@ def login():
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT ----------------
+# ---------------- CHAT (CON ANALISI IMMAGINI) ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
@@ -140,10 +140,33 @@ def chat():
 
     prompt = request.form.get("prompt", "")
 
-    if not prompt:
-        return jsonify({"response": "❌ Scrivi qualcosa"})
+    # 📌 NUOVO: gestione immagine
+    image_file = request.files.get("image")
+    image_b64 = None
 
-    history.append({"role": "user", "content": prompt})
+    if image_file:
+        image_bytes = image_file.read()
+        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+    if not prompt and not image_b64:
+        return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
+
+    # 📌 NUOVO: messaggio immagine
+    if image_b64:
+        history.append({
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt if prompt else "Analizza questa immagine"},
+                {
+                    "type": "image_url",
+                    "image_url": {
+                        "url": f"data:image/jpeg;base64,{image_b64}"
+                    }
+                }
+            ]
+        })
+    else:
+        history.append({"role": "user", "content": prompt})
 
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
@@ -151,7 +174,7 @@ def chat():
     }
 
     payload = {
-        "model": "llama-3.1-8b-instant",
+        "model": "llama-3.2-11b-vision-preview",
         "messages": history[-10:]
     }
 
@@ -201,7 +224,6 @@ def voice_chat():
 
     reply = r.json()["choices"][0]["message"]["content"]
 
-    # 🎤 TEXT → VOICE
     filename = f"audio_{uuid.uuid4().hex}.mp3"
     tts = gTTS(reply, lang="it")
     tts.save(filename)
@@ -218,3 +240,4 @@ def logout():
 # ---------------- START ----------------
 if __name__ == "__main__":
     app.run(debug=True)
+
