@@ -1,11 +1,11 @@
 from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
-import requests, os, json, base64
+import os, json, base64, uuid
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
-import uuid
+import google.generativeai as genai
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -19,12 +19,15 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6)
 )
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# GOOGLE API
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+genai.configure(api_key=GOOGLE_API_KEY)
+
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
 print("===== DEBUG AVVIO =====")
-print("API KEY:", GROQ_API_KEY)
+print("GOOGLE API KEY:", GOOGLE_API_KEY)
 print("=======================")
 
 # ---------------- DATABASE ----------------
@@ -111,8 +114,8 @@ def dashboard():
 def chat():
     print(">>> richiesta arrivata")
 
-    if not GROQ_API_KEY:
-        return jsonify({"response": "❌ API key non configurata"})
+    if not GOOGLE_API_KEY:
+        return jsonify({"response": "❌ API key Google non configurata"})
 
     users = load_users()
 
@@ -130,72 +133,31 @@ def chat():
     prompt = request.form.get("prompt", "")
     image_file = request.files.get("image")
 
-    image_b64 = None
-    if image_file:
-        try:
-            image_b64 = base64.b64encode(image_file.read()).decode("utf-8")
-        except:
-            return jsonify({"response": "❌ Errore immagine"})
-
-    if not prompt and not image_b64:
+    if not prompt and not image_file:
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
-    model = "llama-3.2-11b-vision-preview" if image_b64 else "llama-3.1-8b-instant"
-
-    if image_b64:
-        new_msg = {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt or "Descrivi questa immagine"},
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": f"data:image/jpeg;base64,{image_b64}"
-                    }
-                }
-            ]
-        }
-    else:
-        new_msg = {"role": "user", "content": prompt}
-
-    user_data["history"].append(new_msg)
-
     try:
-        r = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": model,
-                "messages": user_data["history"][-10:]
-            },
-            timeout=20
-        )
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
-        print("STATUS:", r.status_code)
-        print("TEXT:", r.text[:200])
+        # 🖼️ IMMAGINE
+        if image_file:
+            image_bytes = image_file.read()
 
-        if r.status_code != 200:
-            return jsonify({"response": f"❌ HTTP {r.status_code}: {r.text}"})
-
-        res_json = r.json()
-
-        if "choices" not in res_json:
-            return jsonify({"response": "❌ Risposta AI non valida"})
-
-        message = res_json["choices"][0]["message"]
-
-        if isinstance(message["content"], list):
-            reply = "".join([p.get("text", "") for p in message["content"]])
+            response = model.generate_content([
+                prompt if prompt else "Descrivi questa immagine",
+                {
+                    "mime_type": image_file.mimetype,
+                    "data": image_bytes
+                }
+            ])
         else:
-            reply = message["content"]
+            response = model.generate_content(prompt)
 
-        user_data["history"].append({
-            "role": "assistant",
-            "content": reply
-        })
+        reply = response.text
+
+        # SALVA STORIA
+        user_data["history"].append({"role": "user", "content": prompt})
+        user_data["history"].append({"role": "assistant", "content": reply})
 
         if "admin" not in session:
             user_data["messages"] += 1
@@ -212,7 +174,7 @@ def chat():
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
-    if not GROQ_API_KEY:
+    if not GOOGLE_API_KEY:
         return "❌ API key non configurata", 500
 
     text = request.form.get("text", "")
@@ -220,24 +182,10 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        r = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {GROQ_API_KEY}",
-                "Content-Type": "application/json"
-            },
-            json={
-                "model": "llama-3.1-8b-instant",
-                "messages": [{"role": "user", "content": text}]
-            },
-            timeout=20
-        )
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(text)
 
-        if r.status_code != 200:
-            return f"❌ HTTP {r.status_code}: {r.text}", 500
-
-        res_json = r.json()
-        reply = res_json["choices"][0]["message"]["content"]
+        reply = response.text
 
         filename = f"audio_{uuid.uuid4().hex}.mp3"
         gTTS(reply, lang="it").save(filename)
