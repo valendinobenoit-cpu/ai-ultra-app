@@ -116,6 +116,8 @@ def dashboard():
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
+    print(">>> richiesta arrivata")
+
     users = load_users()
 
     if "admin" in session:
@@ -136,7 +138,10 @@ def chat():
     if not prompt and not image_b64:
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
-    # Costruzione messaggio
+    # scegli model corretto
+    model = "llama-3.2-11b-vision-preview" if image_b64 else "llama-3.1-8b-instant"
+
+    # messaggio
     if image_b64:
         new_msg = {
             "role": "user",
@@ -157,47 +162,53 @@ def chat():
         }
 
         payload = {
-            "model": "llama-3.1-8b-instant",
+            "model": model,
             "messages": user_data["history"][-10:]
         }
 
-        # ✅ ENDPOINT CORRETTO
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers=headers,
-            json=payload
+            json=payload,
+            timeout=15
         )
 
-        # ✅ controllo errore HTTP
+        print("STATUS:", r.status_code)
+        print("TEXT:", r.text[:300])
+
         if r.status_code != 200:
             return jsonify({"response": f"❌ HTTP {r.status_code}: {r.text}"})
 
-        # ✅ parsing sicuro
         try:
             res_json = r.json()
         except:
-            return jsonify({"response": f"❌ Risposta non valida: {r.text}"})
+            return jsonify({"response": f"❌ JSON non valido: {r.text}"})
 
-        if "choices" in res_json:
-            reply = res_json["choices"][0]["message"]["content"]
+        if "choices" not in res_json:
+            return jsonify({"response": f"❌ Risposta strana: {res_json}"})
 
-            user_data["history"].append({
-                "role": "assistant",
-                "content": reply
-            })
+        message = res_json["choices"][0]["message"]
 
-            if "admin" not in session:
-                user_data["messages"] += 1
-                users[session["user"]] = user_data
-                save_users(users)
-
-            return jsonify({"response": reply})
-
+        # FIX content (stringa o lista)
+        if isinstance(message["content"], list):
+            reply = "".join([p.get("text", "") for p in message["content"]])
         else:
-            error_msg = res_json.get("error", {}).get("message", "Errore sconosciuto API")
-            return jsonify({"response": f"❌ Errore Groq: {error_msg}"})
+            reply = message["content"]
+
+        user_data["history"].append({
+            "role": "assistant",
+            "content": reply
+        })
+
+        if "admin" not in session:
+            user_data["messages"] += 1
+            users[session["user"]] = user_data
+            save_users(users)
+
+        return jsonify({"response": reply})
 
     except Exception as e:
+        print("ERRORE:", str(e))
         return jsonify({"response": f"❌ Errore Server: {str(e)}"})
 
 # ---------------- VOICE CHAT ----------------
@@ -222,22 +233,18 @@ def voice_chat():
         r = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers=headers,
-            json=payload
+            json=payload,
+            timeout=15
         )
 
         if r.status_code != 200:
             return f"❌ HTTP {r.status_code}: {r.text}", 500
 
-        try:
-            res_json = r.json()
-        except:
-            return f"❌ Risposta non valida: {r.text}", 500
-
+        res_json = r.json()
         reply = res_json["choices"][0]["message"]["content"]
 
         filename = f"audio_{uuid.uuid4().hex}.mp3"
-        tts = gTTS(reply, lang="it")
-        tts.save(filename)
+        gTTS(reply, lang="it").save(filename)
 
         @after_this_request
         def remove_file(response):
