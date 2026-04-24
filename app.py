@@ -19,7 +19,7 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6)
 )
 
-# 🔥 GOOGLE CONFIG
+# GOOGLE CONFIG
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -136,26 +136,17 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
     try:
-        # ✅ MODELLO GIUSTO
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-1.0-pro")
 
-        # 🖼️ IMMAGINE
+        # ❌ 1.0-pro NON supporta immagini → fallback intelligente
         if image_file:
-            image_bytes = image_file.read()
+            reply = "⚠️ Questo modello non supporta immagini. Scrivi una descrizione dell'immagine."
 
-            response = model.generate_content([
-                prompt or "Descrivi questa immagine",
-                {
-                    "mime_type": image_file.mimetype,
-                    "data": image_bytes
-                }
-            ])
         else:
             response = model.generate_content(prompt)
+            reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
 
-        reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
-
-        # SALVA
+        # SALVA STORIA
         user_data["history"].append({"role": "user", "content": prompt})
         user_data["history"].append({"role": "assistant", "content": reply})
 
@@ -183,8 +174,7 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        # ✅ STESSO MODELLO
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-1.0-pro")
 
         response = model.generate_content(text)
         reply = response.text if hasattr(response, "text") else "Errore risposta"
