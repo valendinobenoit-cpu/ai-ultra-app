@@ -65,108 +65,63 @@ def home():
         return redirect("/dashboard")
     return render_template("login.html")
 
-@app.route("/admin-code", methods=["GET", "POST"])
-def admin_code_page():
-    if request.method == "POST":
-        code = request.form.get("admin_code", "").strip()
-        if code == ADMIN_CODE:
-            session.clear()
-            session["admin"] = True
-            session.permanent = True
-            return redirect("/dashboard")
-        return "❌ Codice admin errato"
-    return render_template("admin.html")
-
-@app.route("/register-page")
-def register_page():
-    return render_template("register.html")
-
-@app.route("/register", methods=["POST"])
-def register():
-    users = load_users()
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "").strip()
-
-    if not email or not password:
-        return "❌ Compila tutti i campi"
-    if email in users:
-        return "❌ Utente già esistente"
-
-    users[email] = {
-        "password": generate_password_hash(password),
-        "messages": 0,
-        "history": []
-    }
-    save_users(users)
-    return redirect("/")
-
-@app.route("/login", methods=["POST"])
-def login():
-    users = load_users()
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "").strip()
-
-    if email in users and check_password_hash(users[email]["password"], password):
-        session.clear()
-        session["user"] = email
-        session.permanent = True
-        return redirect("/dashboard")
-    return "❌ Login fallito"
-
-# ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT ----------------
+# ---------------- CHAT (ULTRA SICURA) ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
     print(">>> richiesta arrivata")
 
-    # 🔴 blocco immediato se manca API key
-    if not GROQ_API_KEY:
-        return jsonify({"response": "❌ API key non configurata sul server"})
-
-    users = load_users()
-
-    if "admin" in session:
-        user_data = {"messages": 0, "history": []}
-    else:
-        user_data = users.get(session["user"])
-        if "history" not in user_data:
-            user_data["history"] = []
-
-    prompt = request.form.get("prompt", "")
-    image_file = request.files.get("image")
-    image_b64 = None
-
-    if image_file:
-        image_bytes = image_file.read()
-        image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
-    if not prompt and not image_b64:
-        return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
-
-    # scegli model corretto
-    model = "llama-3.2-11b-vision-preview" if image_b64 else "llama-3.1-8b-instant"
-
-    # messaggio
-    if image_b64:
-        new_msg = {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": prompt if prompt else "Analizza questa immagine"},
-                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
-            ]
-        }
-    else:
-        new_msg = {"role": "user", "content": prompt}
-
-    user_data["history"].append(new_msg)
-
     try:
+        # ❌ API KEY
+        if not GROQ_API_KEY:
+            return jsonify({"response": "❌ API key non configurata sul server"})
+
+        users = load_users()
+
+        # utente
+        if "admin" in session:
+            user_data = {"messages": 0, "history": []}
+        else:
+            user_data = users.get(session["user"])
+            if not user_data:
+                return jsonify({"response": "❌ Utente non trovato"})
+            if "history" not in user_data:
+                user_data["history"] = []
+
+        prompt = request.form.get("prompt", "")
+        image_file = request.files.get("image")
+        image_b64 = None
+
+        if image_file:
+            image_bytes = image_file.read()
+            image_b64 = base64.b64encode(image_bytes).decode("utf-8")
+
+        if not prompt and not image_b64:
+            return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
+
+        # MODEL
+        model = "llama-3.2-11b-vision-preview" if image_b64 else "llama-3.1-8b-instant"
+
+        # MESSAGGIO
+        if image_b64:
+            new_msg = {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt if prompt else "Analizza questa immagine"},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
+                ]
+            }
+        else:
+            new_msg = {"role": "user", "content": prompt}
+
+        user_data["history"].append(new_msg)
+
+        # REQUEST API
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
@@ -185,22 +140,31 @@ def chat():
         )
 
         print("STATUS:", r.status_code)
-        print("TEXT:", r.text[:300])
+        print("TEXT:", r.text[:200])
 
+        # ❌ errore HTTP
         if r.status_code != 200:
-            return jsonify({"response": f"❌ HTTP {r.status_code}: {r.text}"})
+            return jsonify({
+                "response": f"❌ HTTP {r.status_code}: {r.text}"
+            })
 
+        # ❌ JSON non valido
         try:
             res_json = r.json()
-        except:
-            return jsonify({"response": f"❌ JSON non valido: {r.text}"})
+        except Exception:
+            return jsonify({
+                "response": f"❌ Risposta non JSON: {r.text}"
+            })
 
+        # ❌ struttura strana
         if "choices" not in res_json:
-            return jsonify({"response": f"❌ Risposta strana: {res_json}"})
+            return jsonify({
+                "response": f"❌ Risposta API strana: {res_json}"
+            })
 
         message = res_json["choices"][0]["message"]
 
-        # gestione content
+        # fix content
         if isinstance(message["content"], list):
             reply = "".join([p.get("text", "") for p in message["content"]])
         else:
@@ -219,21 +183,23 @@ def chat():
         return jsonify({"response": reply})
 
     except Exception as e:
-        print("ERRORE:", str(e))
-        return jsonify({"response": f"❌ Errore Server: {str(e)}"})
+        print("ERRORE CRITICO:", str(e))
+        return jsonify({
+            "response": f"❌ Errore server: {str(e)}"
+        })
 
 # ---------------- VOICE CHAT ----------------
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
-    if not GROQ_API_KEY:
-        return "❌ API key non configurata", 500
-
-    text = request.form.get("text", "")
-    if not text:
-        return "❌ Nessun testo", 400
-
     try:
+        if not GROQ_API_KEY:
+            return "❌ API key non configurata", 500
+
+        text = request.form.get("text", "")
+        if not text:
+            return "❌ Nessun testo", 400
+
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
