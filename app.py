@@ -19,7 +19,7 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6)
 )
 
-# GOOGLE CONFIG
+# 🔥 GOOGLE CONFIG
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 
@@ -112,7 +112,6 @@ def dashboard():
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
-    print(">>> richiesta arrivata")
 
     if not GOOGLE_API_KEY:
         return jsonify({"response": "❌ API key Google non configurata"})
@@ -137,15 +136,15 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
     try:
-        # 🔥 MODELLO CORRETTO
-        model = genai.GenerativeModel("gemini-1.5-pro")
+        # ✅ MODELLO GIUSTO
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
-        # 🖼️ IMMAGINI
+        # 🖼️ IMMAGINE
         if image_file:
             image_bytes = image_file.read()
 
             response = model.generate_content([
-                prompt if prompt else "Descrivi questa immagine",
+                prompt or "Descrivi questa immagine",
                 {
                     "mime_type": image_file.mimetype,
                     "data": image_bytes
@@ -156,7 +155,7 @@ def chat():
 
         reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
 
-        # SALVA STORIA
+        # SALVA
         user_data["history"].append({"role": "user", "content": prompt})
         user_data["history"].append({"role": "assistant", "content": reply})
 
@@ -175,6 +174,7 @@ def chat():
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
+
     if not GOOGLE_API_KEY:
         return "❌ API key non configurata", 500
 
@@ -183,9 +183,10 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        model = genai.GenerativeModel("gemini-1.5-pro")
-        response = model.generate_content(text)
+        # ✅ STESSO MODELLO
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
+        response = model.generate_content(text)
         reply = response.text if hasattr(response, "text") else "Errore risposta"
 
         filename = f"audio_{uuid.uuid4().hex}.mp3"
