@@ -23,6 +23,13 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
+# 🔥 DEBUG AVVIO
+print("===== DEBUG AVVIO =====")
+print("API KEY:", GROQ_API_KEY)
+if not GROQ_API_KEY:
+    print("❌ ERRORE: GROQ_API_KEY NON CARICATA!")
+print("=======================")
+
 # ---------------- DATABASE ----------------
 def load_users():
     if not os.path.exists(USERS_FILE):
@@ -118,6 +125,10 @@ def dashboard():
 def chat():
     print(">>> richiesta arrivata")
 
+    # 🔴 blocco immediato se manca API key
+    if not GROQ_API_KEY:
+        return jsonify({"response": "❌ API key non configurata sul server"})
+
     users = load_users()
 
     if "admin" in session:
@@ -189,7 +200,7 @@ def chat():
 
         message = res_json["choices"][0]["message"]
 
-        # FIX content (stringa o lista)
+        # gestione content
         if isinstance(message["content"], list):
             reply = "".join([p.get("text", "") for p in message["content"]])
         else:
@@ -215,6 +226,9 @@ def chat():
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
+    if not GROQ_API_KEY:
+        return "❌ API key non configurata", 500
+
     text = request.form.get("text", "")
     if not text:
         return "❌ Nessun testo", 400
