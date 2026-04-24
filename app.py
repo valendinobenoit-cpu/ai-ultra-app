@@ -136,15 +136,24 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
     try:
-        model = genai.GenerativeModel("gemini-1.0-pro")
+        # ✅ MODELLO CORRETTO
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
-        # ❌ 1.0-pro NON supporta immagini → fallback intelligente
+        # 🖼️ SUPPORTO IMMAGINI
         if image_file:
-            reply = "⚠️ Questo modello non supporta immagini. Scrivi una descrizione dell'immagine."
+            image_bytes = image_file.read()
 
+            response = model.generate_content([
+                prompt or "Descrivi questa immagine",
+                {
+                    "mime_type": image_file.mimetype,
+                    "data": image_bytes
+                }
+            ])
         else:
             response = model.generate_content(prompt)
-            reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
+
+        reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
 
         # SALVA STORIA
         user_data["history"].append({"role": "user", "content": prompt})
@@ -174,7 +183,7 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        model = genai.GenerativeModel("gemini-1.0-pro")
+        model = genai.GenerativeModel("gemini-1.5-flash-latest")
 
         response = model.generate_content(text)
         reply = response.text if hasattr(response, "text") else "Errore risposta"
