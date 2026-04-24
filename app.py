@@ -112,17 +112,18 @@ def login():
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT LOGIC ----------------
+# ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
     users = load_users()
-    
+
     if "admin" in session:
         user_data = {"messages": 0, "history": []}
     else:
         user_data = users.get(session["user"])
-        if "history" not in user_data: user_data["history"] = []
+        if "history" not in user_data:
+            user_data["history"] = []
 
     prompt = request.form.get("prompt", "")
     image_file = request.files.get("image")
@@ -135,7 +136,7 @@ def chat():
     if not prompt and not image_b64:
         return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
 
-    # Creazione del messaggio
+    # Costruzione messaggio
     if image_b64:
         new_msg = {
             "role": "user",
@@ -150,25 +151,48 @@ def chat():
     user_data["history"].append(new_msg)
 
     try:
-        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
-        payload = {
-            "model": "llama-3.2-11b-vision-preview",
-            "messages": user_data["history"][-10:] # Ultime 10 battute per memoria
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
         }
 
-        r = requests.post("https://groq.com", headers=headers, json=payload)
-        res_json = r.json()
+        payload = {
+            "model": "llama-3.1-8b-instant",
+            "messages": user_data["history"][-10:]
+        }
+
+        # ✅ ENDPOINT CORRETTO
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload
+        )
+
+        # ✅ controllo errore HTTP
+        if r.status_code != 200:
+            return jsonify({"response": f"❌ HTTP {r.status_code}: {r.text}"})
+
+        # ✅ parsing sicuro
+        try:
+            res_json = r.json()
+        except:
+            return jsonify({"response": f"❌ Risposta non valida: {r.text}"})
 
         if "choices" in res_json:
             reply = res_json["choices"][0]["message"]["content"]
-            user_data["history"].append({"role": "assistant", "content": reply})
-            
+
+            user_data["history"].append({
+                "role": "assistant",
+                "content": reply
+            })
+
             if "admin" not in session:
                 user_data["messages"] += 1
                 users[session["user"]] = user_data
                 save_users(users)
-            
+
             return jsonify({"response": reply})
+
         else:
             error_msg = res_json.get("error", {}).get("message", "Errore sconosciuto API")
             return jsonify({"response": f"❌ Errore Groq: {error_msg}"})
@@ -181,24 +205,40 @@ def chat():
 @login_required
 def voice_chat():
     text = request.form.get("text", "")
-    if not text: return "❌ Nessun testo", 400
+    if not text:
+        return "❌ Nessun testo", 400
 
     try:
-        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
+
         payload = {
             "model": "llama-3.1-8b-instant",
             "messages": [{"role": "user", "content": text}]
         }
 
-        r = requests.post("https://groq.com", headers=headers, json=payload)
-        reply = r.json()["choices"][0]["message"]["content"]
+        r = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
+            json=payload
+        )
 
-        # Creazione file audio temporaneo
+        if r.status_code != 200:
+            return f"❌ HTTP {r.status_code}: {r.text}", 500
+
+        try:
+            res_json = r.json()
+        except:
+            return f"❌ Risposta non valida: {r.text}", 500
+
+        reply = res_json["choices"][0]["message"]["content"]
+
         filename = f"audio_{uuid.uuid4().hex}.mp3"
         tts = gTTS(reply, lang="it")
         tts.save(filename)
 
-        # Elimina il file dopo che è stato inviato al client
         @after_this_request
         def remove_file(response):
             try:
@@ -213,13 +253,13 @@ def voice_chat():
     except Exception as e:
         return f"❌ Errore: {str(e)}", 500
 
+# ---------------- LOGOUT ----------------
 @app.route("/logout")
 @login_required
 def logout():
     session.clear()
     return redirect("/")
 
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
-
-
