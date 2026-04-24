@@ -26,8 +26,6 @@ USERS_FILE = "users.json"
 # 🔥 DEBUG AVVIO
 print("===== DEBUG AVVIO =====")
 print("API KEY:", GROQ_API_KEY)
-if not GROQ_API_KEY:
-    print("❌ ERRORE: GROQ_API_KEY NON CARICATA!")
 print("=======================")
 
 # ---------------- DATABASE ----------------
@@ -65,63 +63,106 @@ def home():
         return redirect("/dashboard")
     return render_template("login.html")
 
+@app.route("/register-page")
+def register_page():
+    return render_template("register.html")
+
+@app.route("/register", methods=["POST"])
+def register():
+    users = load_users()
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "").strip()
+
+    if not email or not password:
+        return "❌ Compila tutti i campi"
+    if email in users:
+        return "❌ Utente già esistente"
+
+    users[email] = {
+        "password": generate_password_hash(password),
+        "messages": 0,
+        "history": []
+    }
+
+    save_users(users)
+    return redirect("/")
+
+@app.route("/login", methods=["POST"])
+def login():
+    users = load_users()
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "").strip()
+
+    if email in users and check_password_hash(users[email]["password"], password):
+        session.clear()
+        session["user"] = email
+        session.permanent = True
+        return redirect("/dashboard")
+
+    return "❌ Login fallito"
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT (ULTRA SICURA) ----------------
+# ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
     print(">>> richiesta arrivata")
 
+    if not GROQ_API_KEY:
+        return jsonify({"response": "❌ API key non configurata"})
+
+    users = load_users()
+
+    # 🔥 DEBUG SESSION
+    print("SESSION USER:", session.get("user"))
+    print("USERS:", users)
+
+    # ADMIN
+    if "admin" in session:
+        user_data = {"messages": 0, "history": []}
+
+    else:
+        user_data = users.get(session.get("user"))
+
+        # 🔴 FIX CRITICO
+        if not user_data:
+            return jsonify({"response": "❌ Utente non trovato"})
+
+        if "history" not in user_data:
+            user_data["history"] = []
+
+    prompt = request.form.get("prompt", "")
+    image_file = request.files.get("image")
+    image_b64 = None
+
+    if image_file:
+        image_b64 = base64.b64encode(image_file.read()).decode("utf-8")
+
+    if not prompt and not image_b64:
+        return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
+
+    # MODEL
+    model = "llama-3.2-11b-vision-preview" if image_b64 else "llama-3.1-8b-instant"
+
+    # MESSAGGIO
+    if image_b64:
+        new_msg = {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": prompt or "Analizza questa immagine"},
+                {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
+            ]
+        }
+    else:
+        new_msg = {"role": "user", "content": prompt}
+
+    user_data["history"].append(new_msg)
+
     try:
-        # ❌ API KEY
-        if not GROQ_API_KEY:
-            return jsonify({"response": "❌ API key non configurata sul server"})
-
-        users = load_users()
-
-        # utente
-        if "admin" in session:
-            user_data = {"messages": 0, "history": []}
-        else:
-            user_data = users.get(session["user"])
-            if not user_data:
-                return jsonify({"response": "❌ Utente non trovato"})
-            if "history" not in user_data:
-                user_data["history"] = []
-
-        prompt = request.form.get("prompt", "")
-        image_file = request.files.get("image")
-        image_b64 = None
-
-        if image_file:
-            image_bytes = image_file.read()
-            image_b64 = base64.b64encode(image_bytes).decode("utf-8")
-
-        if not prompt and not image_b64:
-            return jsonify({"response": "❌ Scrivi qualcosa o carica un'immagine"})
-
-        # MODEL
-        model = "llama-3.2-11b-vision-preview" if image_b64 else "llama-3.1-8b-instant"
-
-        # MESSAGGIO
-        if image_b64:
-            new_msg = {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": prompt if prompt else "Analizza questa immagine"},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
-                ]
-            }
-        else:
-            new_msg = {"role": "user", "content": prompt}
-
-        user_data["history"].append(new_msg)
-
-        # REQUEST API
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
@@ -136,35 +177,25 @@ def chat():
             "https://api.groq.com/openai/v1/chat/completions",
             headers=headers,
             json=payload,
-            timeout=15
+            timeout=20
         )
 
         print("STATUS:", r.status_code)
         print("TEXT:", r.text[:200])
 
-        # ❌ errore HTTP
         if r.status_code != 200:
-            return jsonify({
-                "response": f"❌ HTTP {r.status_code}: {r.text}"
-            })
+            return jsonify({"response": f"❌ HTTP {r.status_code}: {r.text}"})
 
-        # ❌ JSON non valido
         try:
             res_json = r.json()
-        except Exception:
-            return jsonify({
-                "response": f"❌ Risposta non JSON: {r.text}"
-            })
+        except:
+            return jsonify({"response": "❌ Risposta non JSON dal server AI"})
 
-        # ❌ struttura strana
         if "choices" not in res_json:
-            return jsonify({
-                "response": f"❌ Risposta API strana: {res_json}"
-            })
+            return jsonify({"response": f"❌ Risposta strana: {res_json}"})
 
         message = res_json["choices"][0]["message"]
 
-        # fix content
         if isinstance(message["content"], list):
             reply = "".join([p.get("text", "") for p in message["content"]])
         else:
@@ -183,23 +214,21 @@ def chat():
         return jsonify({"response": reply})
 
     except Exception as e:
-        print("ERRORE CRITICO:", str(e))
-        return jsonify({
-            "response": f"❌ Errore server: {str(e)}"
-        })
+        print("ERRORE:", str(e))
+        return jsonify({"response": f"❌ Errore server: {str(e)}"})
 
-# ---------------- VOICE CHAT ----------------
+# ---------------- VOICE ----------------
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
+    if not GROQ_API_KEY:
+        return "❌ API key non configurata", 500
+
+    text = request.form.get("text", "")
+    if not text:
+        return "❌ Nessun testo", 400
+
     try:
-        if not GROQ_API_KEY:
-            return "❌ API key non configurata", 500
-
-        text = request.form.get("text", "")
-        if not text:
-            return "❌ Nessun testo", 400
-
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
@@ -214,11 +243,8 @@ def voice_chat():
             "https://api.groq.com/openai/v1/chat/completions",
             headers=headers,
             json=payload,
-            timeout=15
+            timeout=20
         )
-
-        if r.status_code != 200:
-            return f"❌ HTTP {r.status_code}: {r.text}", 500
 
         res_json = r.json()
         reply = res_json["choices"][0]["message"]["content"]
@@ -228,11 +254,8 @@ def voice_chat():
 
         @after_this_request
         def remove_file(response):
-            try:
-                if os.path.exists(filename):
-                    os.remove(filename)
-            except Exception as e:
-                app.logger.error(f"Errore eliminazione file: {e}")
+            if os.path.exists(filename):
+                os.remove(filename)
             return response
 
         return send_file(filename, mimetype="audio/mpeg")
