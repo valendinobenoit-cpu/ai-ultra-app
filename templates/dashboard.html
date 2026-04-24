@@ -205,6 +205,20 @@ border-radius:10px;
 .recording{
 box-shadow:0 0 20px red !important;
 }
+
+/* IMAGE PREVIEW */
+#preview {
+    max-width: 900px;
+    margin: 10px auto;
+    display: none;
+}
+
+#preview img {
+    max-width: 200px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: block;
+}
 </style>
 </head>
 
@@ -230,6 +244,10 @@ box-shadow:0 0 20px red !important;
 <div class="main">
 
 <div class="chat" id="chat"></div>
+
+<!-- IMAGE PREVIEW -->
+<div id="preview"></div>
+
 <div class="loader" id="loader">AI sta pensando...</div>
 
 <div class="input-wrapper">
@@ -276,15 +294,38 @@ setTimeout(t,8);
 t();
 }
 
+/* IMAGE PREVIEW */
+file.onchange = () => {
+    const f = file.files[0];
+    if (!f) return;
+
+    selectedImage = f;
+
+    const reader = new FileReader();
+    reader.onload = e => {
+        preview.innerHTML = `<img src="${e.target.result}">`;
+        preview.style.display = "block";
+    };
+    reader.readAsDataURL(f);
+};
+
 /* SEND */
 async function send(){
 let text=input.value.trim();
 if(!text && !selectedImage) return;
 
-add("user",text);
+add("user",text || "[Immagine]");
 
 let form=new FormData();
 form.append("prompt",text);
+
+if(selectedImage){
+form.append("image",selectedImage);
+preview.style.display="none";
+preview.innerHTML="";
+selectedImage=null;
+file.value="";
+}
 
 input.value="";
 loader.style.display="block";
@@ -339,3 +380,4 @@ rec.stop();
 
 </body>
 </html>
+
