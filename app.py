@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
-from mistralai.client import MistralClient  # ✅ CORRETTO
+from mistralai import Mistral
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -20,7 +20,7 @@ app.config.update(
 )
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-client = MistralClient(api_key=MISTRAL_API_KEY)  # ✅ CORRETTO
+client = Mistral(api_key=MISTRAL_API_KEY)
 
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
@@ -148,12 +148,12 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
     try:
-        # 🔥 SE C'È IMMAGINE
+        # 🔥 IMMAGINE
         if image_file:
             image_bytes = image_file.read()
             base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-            response = client.chat(
+            response = client.chat.complete(
                 model="pixtral-12b-latest",
                 messages=[
                     {
@@ -169,10 +169,11 @@ def chat():
                 ]
             )
 
+        # 🔥 SOLO TESTO
         else:
             history.append({"role": "user", "content": prompt})
 
-            response = client.chat(
+            response = client.chat.complete(
                 model="mistral-small-latest",
                 messages=history[-10:]
             )
@@ -203,7 +204,7 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        response = client.chat(
+        response = client.chat.complete(
             model="mistral-small-latest",
             messages=[{"role": "user", "content": text}]
         )
@@ -236,4 +237,4 @@ def logout():
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
