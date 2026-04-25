@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
-from mistralai import Mistral
+from mistralai.client import MistralClient  # ✅ CORRETTO
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -20,7 +20,7 @@ app.config.update(
 )
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-client = Mistral(api_key=MISTRAL_API_KEY)
+client = MistralClient(api_key=MISTRAL_API_KEY)  # ✅ CORRETTO
 
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
@@ -153,7 +153,7 @@ def chat():
             image_bytes = image_file.read()
             base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-            response = client.chat.complete(
+            response = client.chat(
                 model="pixtral-12b-latest",
                 messages=[
                     {
@@ -172,7 +172,7 @@ def chat():
         else:
             history.append({"role": "user", "content": prompt})
 
-            response = client.chat.complete(
+            response = client.chat(
                 model="mistral-small-latest",
                 messages=history[-10:]
             )
@@ -203,7 +203,7 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        response = client.chat.complete(
+        response = client.chat(
             model="mistral-small-latest",
             messages=[{"role": "user", "content": text}]
         )
