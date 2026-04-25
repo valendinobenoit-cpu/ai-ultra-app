@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
-import os, json, uuid
+import os, json, uuid, base64
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -24,10 +24,6 @@ client = Mistral(api_key=MISTRAL_API_KEY)
 
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
-
-print("===== DEBUG AVVIO =====")
-print("MISTRAL API KEY:", MISTRAL_API_KEY)
-print("=======================")
 
 # ---------------- DATABASE ----------------
 def load_users():
@@ -128,13 +124,13 @@ def login():
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT ----------------
+# ---------------- CHAT + IMAGE ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
 
     if not MISTRAL_API_KEY:
-        return jsonify({"response": "❌ API KEY Mistral mancante"})
+        return jsonify({"response": "❌ API KEY mancante"})
 
     users = load_users()
 
@@ -146,22 +142,45 @@ def chat():
         history = user.get("history", [])
 
     prompt = request.form.get("prompt", "")
+    image_file = request.files.get("image")
 
-    if not prompt:
-        return jsonify({"response": "❌ Scrivi qualcosa"})
-
-    history.append({"role": "user", "content": prompt})
+    if not prompt and not image_file:
+        return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
     try:
-        response = client.chat.complete(
-            model="mistral-small-latest",
-            messages=history[-10:]
-        )
+        # 🔥 SE C'È IMMAGINE
+        if image_file:
+            image_bytes = image_file.read()
+            base64_image = base64.b64encode(image_bytes).decode("utf-8")
+
+            response = client.chat.complete(
+                model="pixtral-12b-latest",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt or "Descrivi questa immagine"},
+                            {
+                                "type": "image_url",
+                                "image_url": f"data:image/jpeg;base64,{base64_image}"
+                            }
+                        ]
+                    }
+                ]
+            )
+
+        else:
+            history.append({"role": "user", "content": prompt})
+
+            response = client.chat.complete(
+                model="mistral-small-latest",
+                messages=history[-10:]
+            )
 
         reply = response.choices[0].message.content
 
     except Exception as e:
-        print("ERRORE MISTRAL:", str(e))
+        print("ERRORE:", str(e))
         return jsonify({"response": f"❌ Errore server: {str(e)}"})
 
     history.append({"role": "assistant", "content": reply})
@@ -179,9 +198,6 @@ def chat():
 @login_required
 def voice_chat():
 
-    if not MISTRAL_API_KEY:
-        return "❌ API KEY mancante", 500
-
     text = request.form.get("text", "")
     if not text:
         return "❌ Nessun testo", 400
@@ -194,7 +210,6 @@ def voice_chat():
 
         reply = response.choices[0].message.content
 
-        # TEXT → AUDIO
         filename = f"audio_{uuid.uuid4().hex}.mp3"
         gTTS(reply, lang="it").save(filename)
 
