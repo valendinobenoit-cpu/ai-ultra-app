@@ -6,3 +6,4 @@ gtts
 google-generativeai>=0.7.0
 gunicorn
 mistral
+mistralai
