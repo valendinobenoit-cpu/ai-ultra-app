@@ -1,8 +1,7 @@
-Flask
-requests
+flask
 python-dotenv
 werkzeug
-gTTS
-google-generativeai>=0.7.0
+gtts
+requests
 gunicorn
-mistralai
+mistralai>=1.0.0
