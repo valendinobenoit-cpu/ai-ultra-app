@@ -148,7 +148,7 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
     try:
-        # 🔥 IMMAGINE
+        # 🔥 SE C'È IMMAGINE
         if image_file:
             image_bytes = image_file.read()
             base64_image = base64.b64encode(image_bytes).decode("utf-8")
@@ -169,7 +169,6 @@ def chat():
                 ]
             )
 
-        # 🔥 SOLO TESTO
         else:
             history.append({"role": "user", "content": prompt})
 
@@ -237,4 +236,4 @@ def logout():
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    app.run(debug=True)
