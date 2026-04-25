@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
-import google.generativeai as genai
+from mistralai import Mistral
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -19,21 +19,15 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6)
 )
 
-# ---------------- GOOGLE CONFIG ----------------
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-
-if not GOOGLE_API_KEY:
-    print("❌ ERRORE: GOOGLE_API_KEY non trovata")
-else:
-    print("✅ API KEY caricata")
-
-genai.configure(api_key=GOOGLE_API_KEY)
-
-# MODELLO SICURO
-MODEL = genai.GenerativeModel("gemini-pro")
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+client = Mistral(api_key=MISTRAL_API_KEY)
 
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
+
+print("===== DEBUG AVVIO =====")
+print("MISTRAL API KEY:", MISTRAL_API_KEY)
+print("=======================")
 
 # ---------------- DATABASE ----------------
 def load_users():
@@ -74,14 +68,32 @@ def home():
 def register_page():
     return render_template("register.html")
 
+@app.route("/admin-code", methods=["GET", "POST"])
+def admin_code_page():
+    if request.method == "POST":
+        code = request.form.get("admin_code", "").strip()
+
+        if code == ADMIN_CODE:
+            session.clear()
+            session["admin"] = True
+            session.permanent = True
+            return redirect("/dashboard")
+
+        return "❌ Codice admin errato"
+
+    return render_template("admin.html")
+
+# ---------------- REGISTER ----------------
 @app.route("/register", methods=["POST"])
 def register():
     users = load_users()
+
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "").strip()
 
     if not email or not password:
         return "❌ Compila tutti i campi"
+
     if email in users:
         return "❌ Utente già esistente"
 
@@ -94,9 +106,11 @@ def register():
     save_users(users)
     return redirect("/")
 
+# ---------------- LOGIN ----------------
 @app.route("/login", methods=["POST"])
 def login():
     users = load_users()
+
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "").strip()
 
@@ -108,6 +122,7 @@ def login():
 
     return "❌ Login fallito"
 
+# ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -118,67 +133,68 @@ def dashboard():
 @login_required
 def chat():
 
-    if not GOOGLE_API_KEY:
-        return jsonify({"response": "❌ API key non configurata"})
+    if not MISTRAL_API_KEY:
+        return jsonify({"response": "❌ API KEY Mistral mancante"})
 
     users = load_users()
 
     if "admin" in session:
-        user_data = {"messages": 0, "history": []}
+        history = []
+        user = {"messages": 0}
     else:
-        user_data = users.get(session.get("user"))
-
-        if not user_data:
-            return jsonify({"response": "❌ Utente non trovato"})
-
-        if "history" not in user_data:
-            user_data["history"] = []
+        user = users.get(session["user"])
+        history = user.get("history", [])
 
     prompt = request.form.get("prompt", "")
-    image_file = request.files.get("image")
 
-    if not prompt and not image_file:
+    if not prompt:
         return jsonify({"response": "❌ Scrivi qualcosa"})
 
+    history.append({"role": "user", "content": prompt})
+
     try:
-        # ❌ immagini NON supportate
-        if image_file:
-            return jsonify({"response": "⚠️ Le immagini non sono supportate da questo modello"})
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=history[-10:]
+        )
 
-        response = MODEL.generate_content(prompt)
-
-        reply = response.text if hasattr(response, "text") else "❌ Nessuna risposta"
-
-        user_data["history"].append({"role": "user", "content": prompt})
-        user_data["history"].append({"role": "assistant", "content": reply})
-
-        if "admin" not in session:
-            user_data["messages"] += 1
-            users[session["user"]] = user_data
-            save_users(users)
-
-        return jsonify({"response": reply})
+        reply = response.choices[0].message.content
 
     except Exception as e:
-        print("ERRORE:", str(e))
+        print("ERRORE MISTRAL:", str(e))
         return jsonify({"response": f"❌ Errore server: {str(e)}"})
+
+    history.append({"role": "assistant", "content": reply})
+
+    if "admin" not in session:
+        user["history"] = history
+        user["messages"] += 1
+        users[session["user"]] = user
+        save_users(users)
+
+    return jsonify({"response": reply})
 
 # ---------------- VOICE CHAT ----------------
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
 
-    if not GOOGLE_API_KEY:
-        return "❌ API key non configurata", 500
+    if not MISTRAL_API_KEY:
+        return "❌ API KEY mancante", 500
 
     text = request.form.get("text", "")
     if not text:
         return "❌ Nessun testo", 400
 
     try:
-        response = MODEL.generate_content(text)
-        reply = response.text if hasattr(response, "text") else "Errore risposta"
+        response = client.chat.complete(
+            model="mistral-small-latest",
+            messages=[{"role": "user", "content": text}]
+        )
 
+        reply = response.choices[0].message.content
+
+        # TEXT → AUDIO
         filename = f"audio_{uuid.uuid4().hex}.mp3"
         gTTS(reply, lang="it").save(filename)
 
@@ -194,7 +210,7 @@ def voice_chat():
         return send_file(filename, mimetype="audio/mpeg")
 
     except Exception as e:
-        return f"❌ Errore: {str(e)}", 500
+        return f"❌ Errore server: {str(e)}", 500
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
