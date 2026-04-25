@@ -1,32 +1,30 @@
+
 <!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AI Ultra Elite</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;600&display=swap" rel="stylesheet">
 
 <style>
-/* --- STILE IDENTICO AL TUO (NON MODIFICATO) --- */
 :root{
 --primary:#4cc9f0;
---bg:#020617;
+--bg1:#020617;
 --bg2:#0f172a;
 --glass:rgba(255,255,255,0.05);
 --border:rgba(255,255,255,0.1);
 }
 
-*{box-sizing:border-box;margin:0;padding:0}
-
+/* BACKGROUND ANIMATO */
 body{
 font-family:"Inter";
+margin:0;
+color:white;
+overflow:hidden;
 background:linear-gradient(-45deg,#020617,#0f172a,#020617,#1e293b);
 background-size:400% 400%;
 animation:bg 15s ease infinite;
-color:white;
-height:100vh;
-display:flex;
 }
 
 @keyframes bg{
@@ -35,51 +33,60 @@ display:flex;
 100%{background-position:0% 50%}
 }
 
+/* SIDEBAR */
 .sidebar{
 width:260px;
+height:100vh;
+position:fixed;
 background:var(--glass);
-backdrop-filter:blur(20px);
+backdrop-filter:blur(25px);
 border-right:1px solid var(--border);
-padding:20px;
-display:flex;
-flex-direction:column;
-gap:20px;
+padding:25px;
 }
 
-.logo{color:var(--primary);font-size:20px;font-weight:600;}
+.logo{
+color:var(--primary);
+font-size:22px;
+text-shadow:0 0 20px rgba(76,201,240,.7);
+}
 
+/* MENU */
 .menu a{
 display:block;
-padding:10px;
-border-radius:10px;
+padding:12px;
+border-radius:12px;
 color:#94a3b8;
-transition:.2s;
+margin-bottom:8px;
+transition:.25s;
 }
 
 .menu a:hover{
-background:rgba(255,255,255,0.05);
 color:white;
-transform:translateX(5px);
+transform:translateX(6px);
+box-shadow:0 0 20px rgba(76,201,240,.3);
 }
 
-.main{flex:1;display:flex;flex-direction:column;height:100vh;}
+/* MAIN */
+.main{
+margin-left:260px;
+height:100vh;
+display:flex;
+flex-direction:column;
+}
 
+/* CHAT */
 .chat{
 flex:1;
 overflow-y:auto;
-padding:20px;
+padding:30px 20px 160px;
 max-width:900px;
-width:100%;
 margin:auto;
 }
 
-.msg{margin-bottom:15px;display:flex;}
-
-.bubble{
-padding:14px;
-border-radius:14px;
-max-width:80%;
-line-height:1.5;
+/* MSG */
+.msg{
+display:flex;
+margin-bottom:20px;
 animation:fade .3s;
 }
 
@@ -87,73 +94,100 @@ animation:fade .3s;
 from{opacity:0;transform:translateY(10px)}
 }
 
-.user{justify-content:flex-end;}
-.user .bubble{background:linear-gradient(135deg,#2563eb,#1d4ed8);}
+.bubble{
+padding:14px;
+border-radius:14px;
+max-width:70%;
+line-height:1.6;
+}
 
+/* USER */
+.user .bubble{
+margin-left:auto;
+background:linear-gradient(135deg,#2563eb,#1d4ed8);
+box-shadow:0 0 20px rgba(37,99,235,.4);
+}
+
+/* BOT */
 .bot .bubble{
 background:var(--glass);
 border:1px solid var(--border);
+backdrop-filter:blur(10px);
 }
 
+/* INPUT */
 .input-wrapper{
-padding:15px;
+position:fixed;
+bottom:0;
+left:260px;
+width:calc(100% - 260px);
+padding:20px;
 background:linear-gradient(to top,#020617,transparent);
 }
 
 .input-box{
-display:flex;
-gap:10px;
 max-width:900px;
 margin:auto;
+display:flex;
+gap:10px;
 background:var(--glass);
 border:1px solid var(--border);
-border-radius:20px;
+border-radius:25px;
 padding:10px;
+transition:.2s;
 }
 
+.input-box:focus-within{
+box-shadow:0 0 30px rgba(76,201,240,.4);
+}
+
+/* INPUT */
 input{
 flex:1;
-background:none;
+background:transparent;
 border:none;
 color:white;
 outline:none;
-font-size:16px;
 }
 
+/* BUTTON */
 button{
 border:none;
-padding:10px;
-border-radius:10px;
 cursor:pointer;
-background:rgba(255,255,255,0.05);
-color:white;
+padding:10px;
+border-radius:12px;
+transition:.2s;
 }
 
-.send{
-background:var(--primary);
-color:black;
-font-weight:bold;
+.send{background:var(--primary)}
+
+button:hover{
+transform:scale(1.1);
+box-shadow:0 0 20px rgba(255,255,255,.3);
 }
 
-button:hover{transform:scale(1.1);}
+/* PREVIEW */
+.preview{
+position:fixed;
+bottom:110px;
+left:50%;
+transform:translateX(-50%);
+display:none;
+background:#000;
+padding:10px;
+border-radius:12px;
+}
 
+/* LOADER */
 .loader{
+display:none;
 text-align:center;
 color:#aaa;
-margin-bottom:10px;
-display:none;
 }
 
-#preview{
-max-width:900px;
-margin:10px auto;
-display:none;
-}
-
-#preview img{
-max-width:200px;
-border-radius:10px;
-border:1px solid var(--border);
+/* VOICE GLOW */
+.recording{
+box-shadow:0 0 20px red !important;
 }
 </style>
 </head>
@@ -162,120 +196,137 @@ border:1px solid var(--border);
 
 <div class="sidebar">
 <div class="logo">AI Ultra</div>
+
 <div class="menu">
 <a>💬 Chat</a>
 <a>💎 Upgrade</a>
 <a href="/logout">🚪 Logout</a>
 </div>
+
+<div style="font-size:12px;color:#64748b;">
+{{ user.plan }} • {{ user.messages }}
+</div>
 </div>
 
 <div class="main">
-
 <div class="chat" id="chat"></div>
-
-<div id="preview"></div>
-
 <div class="loader" id="loader">AI sta pensando...</div>
 
 <div class="input-wrapper">
 <div class="input-box">
 <input id="input" placeholder="Scrivi..." autocomplete="off">
-<button onclick="file.click()">📷</button>
 <input type="file" id="file" hidden>
+
+<button onclick="file.click()">📷</button>
+<button id="micBtn" onclick="toggleMic()">🎤</button>
 <button class="send" onclick="send()">➤</button>
 </div>
 </div>
+</div>
 
+<div class="preview" id="preview">
+<img id="previewImg" height="60">
+<button onclick="removeImage()">✖</button>
 </div>
 
 <script>
 let selectedImage=null;
 
-/* AGGIUNGI MESSAGGIO */
+/* MESSAGE */
 function add(role,text){
 let div=document.createElement("div");
 div.className="msg "+role;
-div.innerHTML=`<div class="bubble">${text}</div>`;
+div.innerHTML=`<div class="bubble"></div>`;
 chat.appendChild(div);
-chat.scrollTop=chat.scrollHeight;
+
+type(div.querySelector(".bubble"),text);
 }
 
-/* PREVIEW IMMAGINE */
-file.onchange = () => {
-const f = file.files[0];
-if (!f) return;
+/* TYPING */
+function type(el,text){
+let i=0;
+function t(){
+if(i<text.length){
+el.innerHTML+=text[i++];
+setTimeout(t,10);
+}
+}
+t();
+}
 
-selectedImage = f;
-
-const reader = new FileReader();
-reader.onload = e => {
-preview.innerHTML = `<img src="${e.target.result}">`;
-preview.style.display = "block";
-};
-reader.readAsDataURL(f);
-};
-
-/* SEND FIXATO */
+/* SEND */
 async function send(){
 let text=input.value.trim();
 if(!text && !selectedImage) return;
 
-add("user",text || "[Immagine]");
+add("user",text);
 
 let form=new FormData();
 form.append("prompt",text);
-
-if(selectedImage){
-form.append("image",selectedImage);
-preview.style.display="none";
-preview.innerHTML="";
-selectedImage=null;
-file.value="";
-}
+if(selectedImage) form.append("image",selectedImage);
 
 input.value="";
 loader.style.display="block";
 
-try{
-let res = await fetch("/chat", {
-method:"POST",
-body:form
-});
-
-// 🔥 leggiamo sempre testo
-let raw = await res.text();
-console.log("RAW:", raw);
-
-let data;
-
-try{
-data = JSON.parse(raw);
-}catch(e){
-loader.style.display="none";
-add("bot","❌ Errore server (risposta non JSON)");
-return;
-}
+let res=await fetch("/chat",{method:"POST",body:form});
+let data=await res.json();
 
 loader.style.display="none";
-
-if(!data.response){
-add("bot","❌ Nessuna risposta");
-return;
-}
 
 add("bot",data.response);
-
-}catch(err){
-loader.style.display="none";
-add("bot","❌ Errore connessione");
-console.error(err);
-}
 }
 
 /* ENTER */
 input.addEventListener("keypress",e=>{
 if(e.key==="Enter") send();
 });
+
+/* IMAGE */
+file.onchange=()=>{
+selectedImage=file.files[0];
+preview.style.display="block";
+previewImg.src=URL.createObjectURL(selectedImage);
+};
+
+function removeImage(){
+selectedImage=null;
+preview.style.display="none";
+}
+
+/* VOICE */
+let rec;
+let recording=false;
+
+function toggleMic(){
+
+if(!('webkitSpeechRecognition' in window)){
+alert("Usa Chrome");
+return;
+}
+
+if(!recording){
+rec=new webkitSpeechRecognition();
+rec.lang="it-IT";
+
+rec.onstart=()=>{
+recording=true;
+micBtn.classList.add("recording");
+};
+
+rec.onresult=e=>{
+input.value=e.results[0][0].transcript;
+};
+
+rec.onend=()=>{
+recording=false;
+micBtn.classList.remove("recording");
+};
+
+rec.start();
+}else{
+rec.stop();
+}
+}
 </script>
 
 </body>
