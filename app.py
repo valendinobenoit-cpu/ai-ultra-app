@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
-from mistralai import Mistral
+import requests
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -20,10 +20,11 @@ app.config.update(
 )
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-client = Mistral(api_key=MISTRAL_API_KEY)
-
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
+
+# 🔥 API DIRETTA (NO LIBRERIA → ZERO ERRORI)
+MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 # ---------------- DATABASE ----------------
 def load_users():
@@ -53,30 +54,37 @@ def get_user():
         return {"role": "admin", "messages": 0}
     return load_users().get(session.get("user"))
 
-# ---------------- AI CORE (FIX ERRORI + RETRY) ----------------
-def ask_mistral(messages, use_image=False):
+# ---------------- AI CORE (SUPER STABILE) ----------------
+def ask_ai(messages, model="mistral-small-latest"):
 
-    models = ["mistral-small-latest", "open-mistral-7b"]  # fallback
+    headers = {
+        "Authorization": f"Bearer {MISTRAL_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    for model in models:
-        for attempt in range(3):
-            try:
-                response = client.chat.complete(
-                    model=model,
-                    messages=messages,
-                    temperature=0.7,
-                )
-                return response.choices[0].message.content
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": 0.7
+    }
 
-            except Exception as e:
-                print(f"ERRORE {model}:", str(e))
+    for attempt in range(3):
+        try:
+            r = requests.post(MISTRAL_URL, headers=headers, json=payload)
+            data = r.json()
 
-                # retry solo per 429
-                if "429" in str(e):
-                    time.sleep(2)
-                    continue
-                else:
-                    break
+            if "choices" in data:
+                return data["choices"][0]["message"]["content"]
+
+            print("ERRORE API:", data)
+
+            # fallback modello
+            if model != "open-mistral-7b":
+                return ask_ai(messages, "open-mistral-7b")
+
+        except Exception as e:
+            print("ERRORE:", str(e))
+            time.sleep(2)
 
     return "⚠️ Server occupato, riprova tra poco"
 
@@ -172,43 +180,39 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
     try:
-
-        # 🧠 Stile ChatGPT (breve + umano)
-        system_prompt = {
+        system = {
             "role": "system",
-            "content": "Rispondi in modo naturale, breve, umano, come ChatGPT. Non fare risposte lunghe."
+            "content": "Rispondi in modo naturale, breve e umano."
         }
 
-        # 📷 SE C'È IMMAGINE
+        # 📷 IMMAGINE
         if image_file:
             image_bytes = image_file.read()
             base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
             messages = [
-                system_prompt,
+                system,
                 {
                     "role": "user",
                     "content": [
                         {"type": "text", "text": prompt or "Descrivi questa immagine"},
                         {
                             "type": "image_url",
-                            "image_url": f"data:image/jpeg;base64,{base64_image}"
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
                         }
                     ]
                 }
             ]
 
-            reply = ask_mistral(messages)
-
         else:
             history.append({"role": "user", "content": prompt})
+            messages = [system] + history[-5:]
 
-            messages = [system_prompt] + history[-5:]
-
-            reply = ask_mistral(messages)
+        reply = ask_ai(messages)
 
     except Exception as e:
-        print("ERRORE:", str(e))
         return jsonify({"response": f"❌ Errore server: {str(e)}"})
 
     history.append({"role": "assistant", "content": reply})
@@ -230,30 +234,26 @@ def voice_chat():
     if not text:
         return "❌ Nessun testo", 400
 
-    try:
-        messages = [
-            {"role": "system", "content": "Rispondi in modo naturale e breve."},
-            {"role": "user", "content": text}
-        ]
+    messages = [
+        {"role": "system", "content": "Rispondi in modo breve e naturale"},
+        {"role": "user", "content": text}
+    ]
 
-        reply = ask_mistral(messages)
+    reply = ask_ai(messages)
 
-        filename = f"audio_{uuid.uuid4().hex}.mp3"
-        gTTS(reply, lang="it").save(filename)
+    filename = f"audio_{uuid.uuid4().hex}.mp3"
+    gTTS(reply, lang="it").save(filename)
 
-        @after_this_request
-        def remove_file(response):
-            try:
-                if os.path.exists(filename):
-                    os.remove(filename)
-            except:
-                pass
-            return response
+    @after_this_request
+    def remove_file(response):
+        try:
+            if os.path.exists(filename):
+                os.remove(filename)
+        except:
+            pass
+        return response
 
-        return send_file(filename, mimetype="audio/mpeg")
-
-    except Exception as e:
-        return f"❌ Errore server: {str(e)}", 500
+    return send_file(filename, mimetype="audio/mpeg")
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
