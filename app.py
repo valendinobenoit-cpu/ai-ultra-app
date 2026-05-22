@@ -1,10 +1,11 @@
 from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
-import os, json, uuid, base64, requests
+import os, json, uuid, base64, time
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
+from mistralai import Mistral
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -19,6 +20,8 @@ app.config.update(
 )
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+client = Mistral(api_key=MISTRAL_API_KEY)
+
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
@@ -49,6 +52,33 @@ def get_user():
     if "admin" in session:
         return {"role": "admin", "messages": 0}
     return load_users().get(session.get("user"))
+
+# ---------------- AI CORE (FIX ERRORI + RETRY) ----------------
+def ask_mistral(messages, use_image=False):
+
+    models = ["mistral-small-latest", "open-mistral-7b"]  # fallback
+
+    for model in models:
+        for attempt in range(3):
+            try:
+                response = client.chat.complete(
+                    model=model,
+                    messages=messages,
+                    temperature=0.7,
+                )
+                return response.choices[0].message.content
+
+            except Exception as e:
+                print(f"ERRORE {model}:", str(e))
+
+                # retry solo per 429
+                if "429" in str(e):
+                    time.sleep(2)
+                    continue
+                else:
+                    break
+
+    return "⚠️ Server occupato, riprova tra poco"
 
 # ---------------- ROUTES ----------------
 @app.route("/")
@@ -126,9 +156,6 @@ def dashboard():
 @login_required
 def chat():
 
-    if not MISTRAL_API_KEY:
-        return jsonify({"response": "❌ API KEY mancante"})
-
     users = load_users()
 
     if "admin" in session:
@@ -145,62 +172,43 @@ def chat():
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
     try:
-        headers = {
-            "Authorization": f"Bearer {MISTRAL_API_KEY}",
-            "Content-Type": "application/json"
+
+        # 🧠 Stile ChatGPT (breve + umano)
+        system_prompt = {
+            "role": "system",
+            "content": "Rispondi in modo naturale, breve, umano, come ChatGPT. Non fare risposte lunghe."
         }
 
-        # 🎯 STILE CHATGPT (breve + naturale)
-        system_prompt = "Rispondi come ChatGPT: naturale, umano, con emozioni leggere, NON troppo lungo."
-
-        # 🔥 SE C'È IMMAGINE
+        # 📷 SE C'È IMMAGINE
         if image_file:
             image_bytes = image_file.read()
             base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
-            payload = {
-                "model": "pixtral-12b-latest",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": system_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt or "Descrivi questa immagine"},
-                            {
-                                "type": "image_url",
-                                "image_url": f"data:image/jpeg;base64,{base64_image}"
-                            }
-                        ]
-                    }
-                ]
-            }
+            messages = [
+                system_prompt,
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": prompt or "Descrivi questa immagine"},
+                        {
+                            "type": "image_url",
+                            "image_url": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    ]
+                }
+            ]
+
+            reply = ask_mistral(messages)
 
         else:
             history.append({"role": "user", "content": prompt})
 
-            payload = {
-                "model": "mistral-small-latest",
-                "messages": [{"role": "system", "content": system_prompt}] + history[-10:]
-            }
+            messages = [system_prompt] + history[-5:]
 
-        r = requests.post(
-            "https://api.mistral.ai/v1/chat/completions",
-            headers=headers,
-            json=payload
-        )
-
-        result = r.json()
-
-        if "choices" not in result:
-            print("ERRORE:", result)
-            return jsonify({"response": f"❌ Errore API: {result}"})
-
-        reply = result["choices"][0]["message"]["content"]
+            reply = ask_mistral(messages)
 
     except Exception as e:
+        print("ERRORE:", str(e))
         return jsonify({"response": f"❌ Errore server: {str(e)}"})
 
     history.append({"role": "assistant", "content": reply})
@@ -223,27 +231,12 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     try:
-        headers = {
-            "Authorization": f"Bearer {MISTRAL_API_KEY}",
-            "Content-Type": "application/json"
-        }
+        messages = [
+            {"role": "system", "content": "Rispondi in modo naturale e breve."},
+            {"role": "user", "content": text}
+        ]
 
-        payload = {
-            "model": "mistral-small-latest",
-            "messages": [
-                {"role": "system", "content": "Rispondi in modo naturale e breve."},
-                {"role": "user", "content": text}
-            ]
-        }
-
-        r = requests.post(
-            "https://api.mistral.ai/v1/chat/completions",
-            headers=headers,
-            json=payload
-        )
-
-        result = r.json()
-        reply = result["choices"][0]["message"]["content"]
+        reply = ask_mistral(messages)
 
         filename = f"audio_{uuid.uuid4().hex}.mp3"
         gTTS(reply, lang="it").save(filename)
