@@ -23,7 +23,6 @@ MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
-# 🔥 API DIRETTA (NO LIBRERIA → ZERO ERRORI)
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 # ---------------- DATABASE ----------------
@@ -54,7 +53,7 @@ def get_user():
         return {"role": "admin", "messages": 0}
     return load_users().get(session.get("user"))
 
-# ---------------- AI CORE (SUPER STABILE) ----------------
+# ---------------- AI CORE ----------------
 def ask_ai(messages, model="mistral-small-latest"):
 
     headers = {
@@ -68,7 +67,7 @@ def ask_ai(messages, model="mistral-small-latest"):
         "temperature": 0.7
     }
 
-    for attempt in range(3):
+    for _ in range(3):
         try:
             r = requests.post(MISTRAL_URL, headers=headers, json=payload)
             data = r.json()
@@ -76,15 +75,9 @@ def ask_ai(messages, model="mistral-small-latest"):
             if "choices" in data:
                 return data["choices"][0]["message"]["content"]
 
-            print("ERRORE API:", data)
-
-            # fallback modello
-            if model != "open-mistral-7b":
-                return ask_ai(messages, "open-mistral-7b")
-
         except Exception as e:
             print("ERRORE:", str(e))
-            time.sleep(2)
+            time.sleep(1)
 
     return "⚠️ Server occupato, riprova tra poco"
 
@@ -159,7 +152,7 @@ def login():
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT + IMAGE ----------------
+# ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
@@ -179,33 +172,41 @@ def chat():
     if not prompt and not image_file:
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
+    # 🔥 SUPER SYSTEM (ChatGPT-like)
+    system = {
+        "role": "system",
+        "content": """
+Sei un assistente avanzato tipo ChatGPT.
+Risposte brevi, naturali e intelligenti.
+
+Capacità:
+- Programmazione completa
+- Debug errori
+- Creazione app/web
+- Idee startup
+- Traduzioni
+- Riassunti
+- Analisi immagini
+- Consigli tech
+- Scrittura testi
+- Spiegazioni semplici
+- Generazione codice
+- Supporto utenti
+- Conversazione naturale
+
+Regole:
+- NON fare testi lunghi
+- Rispondi diretto
+- Sii utile subito
+"""
+    }
+
     try:
-        system = {
-            "role": "system",
-            "content": "Rispondi in modo naturale, breve e umano."
-        }
-
-        # 📷 IMMAGINE
         if image_file:
-            image_bytes = image_file.read()
-            base64_image = base64.b64encode(image_bytes).decode("utf-8")
-
-            messages = [
-                system,
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": prompt or "Descrivi questa immagine"},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
-                            }
-                        }
-                    ]
-                }
-            ]
-
+            # ⚠️ Mistral immagini limitate → fallback descrizione
+            prompt = prompt or "Descrivi questa immagine"
+            history.append({"role": "user", "content": prompt})
+            messages = [system] + history[-5:]
         else:
             history.append({"role": "user", "content": prompt})
             messages = [system] + history[-5:]
@@ -235,7 +236,7 @@ def voice_chat():
         return "❌ Nessun testo", 400
 
     messages = [
-        {"role": "system", "content": "Rispondi in modo breve e naturale"},
+        {"role": "system", "content": "Risposte brevi e naturali"},
         {"role": "user", "content": text}
     ]
 
