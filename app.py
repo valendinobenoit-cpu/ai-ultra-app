@@ -1,11 +1,13 @@
 from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
-import os, json, uuid, base64, time
+import os, json, uuid, time
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
 import requests
+from reportlab.platypus import SimpleDocTemplate, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
 
 # ---------------- INIT ----------------
 load_dotenv()
@@ -20,7 +22,6 @@ app.config.update(
 )
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
@@ -43,18 +44,13 @@ def save_users(users):
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session and "admin" not in session:
+        if "user" not in session:
             return redirect("/")
         return f(*args, **kwargs)
     return wrapper
 
-def get_user():
-    if "admin" in session:
-        return {"role": "admin", "messages": 0}
-    return load_users().get(session.get("user"))
-
-# ---------------- AI CORE ----------------
-def ask_ai(messages, model="mistral-small-latest"):
+# ---------------- AI CORE (VELOCE) ----------------
+def ask_ai(prompt):
 
     headers = {
         "Authorization": f"Bearer {MISTRAL_API_KEY}",
@@ -62,74 +58,42 @@ def ask_ai(messages, model="mistral-small-latest"):
     }
 
     payload = {
-        "model": model,
-        "messages": messages,
-        "temperature": 0.7
+        "model": "open-mistral-7b",  # ⚡ più veloce
+        "messages": [
+            {
+                "role": "system",
+                "content": "Rispondi in modo breve, veloce e naturale. Usa codice solo se richiesto."
+            },
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.6
     }
 
-    for _ in range(3):
-        try:
-            r = requests.post(MISTRAL_URL, headers=headers, json=payload)
-            data = r.json()
-
-            if "choices" in data:
-                return data["choices"][0]["message"]["content"]
-
-            print("ERRORE API:", data)
-
-            if model != "open-mistral-7b":
-                return ask_ai(messages, "open-mistral-7b")
-
-        except Exception as e:
-            print("ERRORE:", str(e))
-            time.sleep(1)
-
-    return "⚠️ Server occupato, riprova tra poco"
+    try:
+        r = requests.post(MISTRAL_URL, headers=headers, json=payload)
+        data = r.json()
+        return data["choices"][0]["message"]["content"]
+    except:
+        return "⚠️ Errore AI"
 
 # ---------------- ROUTES ----------------
 @app.route("/")
 def home():
-    if "user" in session or "admin" in session:
-        return redirect("/dashboard")
     return render_template("login.html")
-
-@app.route("/register-page")
-def register_page():
-    return render_template("register.html")
-
-@app.route("/admin-code", methods=["GET", "POST"])
-def admin_code_page():
-    if request.method == "POST":
-        code = request.form.get("admin_code", "").strip()
-
-        if code == ADMIN_CODE:
-            session.clear()
-            session["admin"] = True
-            session.permanent = True
-            return redirect("/dashboard")
-
-        return "❌ Codice admin errato"
-
-    return render_template("admin.html")
 
 # ---------------- REGISTER ----------------
 @app.route("/register", methods=["POST"])
 def register():
     users = load_users()
 
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "").strip()
-
-    if not email or not password:
-        return "❌ Compila tutti i campi"
+    email = request.form.get("email").lower()
+    password = request.form.get("password")
 
     if email in users:
-        return "❌ Utente già esistente"
+        return "Utente esistente"
 
     users[email] = {
-        "password": generate_password_hash(password),
-        "messages": 0,
-        "history": []
+        "password": generate_password_hash(password)
     }
 
     save_users(users)
@@ -140,124 +104,94 @@ def register():
 def login():
     users = load_users()
 
-    email = request.form.get("email", "").strip().lower()
-    password = request.form.get("password", "").strip()
+    email = request.form.get("email").lower()
+    password = request.form.get("password")
 
     if email in users and check_password_hash(users[email]["password"], password):
-        session.clear()
         session["user"] = email
-        session.permanent = True
         return redirect("/dashboard")
 
-    return "❌ Login fallito"
+    return "Login fallito"
 
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html", user=get_user())
+    return render_template("dashboard.html")
 
 # ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
 
-    users = load_users()
+    prompt = request.form.get("prompt")
 
-    if "admin" in session:
-        history = []
-        user = {"messages": 0}
-    else:
-        user = users.get(session["user"])
-        history = user.get("history", [])
+    if not prompt:
+        return jsonify({"response": "Scrivi qualcosa"})
 
-    prompt = request.form.get("prompt", "")
-    image_file = request.files.get("image")
+    # 🎯 AI INTELLIGENTE (AUTO MODE)
+    if "tiktok" in prompt.lower():
+        prompt = f"Crea idea TikTok + script + caption: {prompt}"
 
-    if not prompt and not image_file:
-        return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
+    elif "caption" in prompt.lower():
+        prompt = f"Crea caption social coinvolgente: {prompt}"
 
-    # 🔥 SYSTEM CHATGPT STYLE
-    system = {
-        "role": "system",
-        "content": """
-Sei un assistente avanzato tipo ChatGPT.
+    elif "thumbnail" in prompt.lower():
+        prompt = f"Crea idea thumbnail YouTube: {prompt}"
 
-REGOLE:
+    elif "riassunto" in prompt.lower():
+        prompt = f"Fai riassunto semplice e chiaro: {prompt}"
 
-1. CODICE:
-- Usa SEMPRE blocchi ```linguaggio
-- Nessun testo sopra
-- Codice pronto da copiare
+    elif "ecommerce" in prompt.lower():
+        prompt = f"Crea descrizione prodotto persuasiva: {prompt}"
 
-2. TESTI:
-- Puliti
-- Senza introduzioni inutili
+    elif "email" in prompt.lower():
+        prompt = f"Crea email marketing: {prompt}"
 
-3. RISPOSTE:
-- Brevi
-- Dirette
-- Naturali
-
-CAPACITÀ:
-- Programmazione
-- Debug
-- Creazione app/web
-- Scrittura testi
-- Traduzioni
-- Idee
-- Supporto tecnico
-"""
-    }
-
-    try:
-        if image_file:
-            prompt = prompt or "Descrivi questa immagine"
-            history.append({"role": "user", "content": prompt})
-            messages = [system] + history[-5:]
-        else:
-            history.append({"role": "user", "content": prompt})
-            messages = [system] + history[-5:]
-
-        reply = ask_ai(messages)
-
-    except Exception as e:
-        return jsonify({"response": f"❌ Errore server: {str(e)}"})
-
-    history.append({"role": "assistant", "content": reply})
-
-    if "admin" not in session:
-        user["history"] = history
-        user["messages"] += 1
-        users[session["user"]] = user
-        save_users(users)
+    reply = ask_ai(prompt)
 
     return jsonify({"response": reply})
 
-# ---------------- VOICE CHAT ----------------
+# ---------------- PDF GENERATOR ----------------
+@app.route("/generate-pdf", methods=["POST"])
+@login_required
+def generate_pdf():
+
+    text = request.form.get("text")
+
+    filename = f"file_{uuid.uuid4().hex}.pdf"
+    doc = SimpleDocTemplate(filename)
+    styles = getSampleStyleSheet()
+
+    content = [Paragraph(text, styles["Normal"])]
+    doc.build(content)
+
+    @after_this_request
+    def remove(response):
+        try:
+            os.remove(filename)
+        except:
+            pass
+        return response
+
+    return send_file(filename, as_attachment=True)
+
+# ---------------- VOICE ----------------
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
 
-    text = request.form.get("text", "")
-    if not text:
-        return "❌ Nessun testo", 400
+    text = request.form.get("text")
 
-    messages = [
-        {"role": "system", "content": "Risposte brevi e naturali"},
-        {"role": "user", "content": text}
-    ]
-
-    reply = ask_ai(messages)
+    reply = ask_ai(text)
 
     filename = f"audio_{uuid.uuid4().hex}.mp3"
     gTTS(reply, lang="it").save(filename)
 
     @after_this_request
-    def remove_file(response):
+    def remove(response):
         try:
-            if os.path.exists(filename):
-                os.remove(filename)
+            os.remove(filename)
         except:
             pass
         return response
@@ -266,7 +200,6 @@ def voice_chat():
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
-@login_required
 def logout():
     session.clear()
     return redirect("/")
