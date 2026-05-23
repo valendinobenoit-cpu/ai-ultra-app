@@ -6,6 +6,8 @@ from functools import wraps
 from datetime import timedelta
 from gtts import gTTS
 import requests
+
+# PDF
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
@@ -23,7 +25,6 @@ app.config.update(
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 USERS_FILE = "users.json"
-
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 # ---------------- DATABASE ----------------
@@ -49,7 +50,10 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-# ---------------- AI CORE (VELOCE) ----------------
+def get_user():
+    return load_users().get(session.get("user"))
+
+# ---------------- AI CORE ----------------
 def ask_ai(prompt):
 
     headers = {
@@ -58,42 +62,53 @@ def ask_ai(prompt):
     }
 
     payload = {
-        "model": "open-mistral-7b",  # ⚡ più veloce
+        "model": "open-mistral-7b",
         "messages": [
-            {
-                "role": "system",
-                "content": "Rispondi in modo breve, veloce e naturale. Usa codice solo se richiesto."
-            },
+            {"role": "system", "content": "Risposte brevi, naturali, intelligenti e utili."},
             {"role": "user", "content": prompt}
         ],
-        "temperature": 0.6
+        "temperature": 0.7
     }
 
     try:
         r = requests.post(MISTRAL_URL, headers=headers, json=payload)
         data = r.json()
-        return data["choices"][0]["message"]["content"]
-    except:
+
+        if "choices" in data:
+            return data["choices"][0]["message"]["content"]
+
         return "⚠️ Errore AI"
+
+    except:
+        return "⚠️ Server occupato"
 
 # ---------------- ROUTES ----------------
 @app.route("/")
 def home():
     return render_template("login.html")
 
+# ✅ FIX REGISTRAZIONE (ERA IL TUO ERRORE)
+@app.route("/register-page")
+def register_page():
+    return render_template("register.html")
+
 # ---------------- REGISTER ----------------
 @app.route("/register", methods=["POST"])
 def register():
     users = load_users()
 
-    email = request.form.get("email").lower()
-    password = request.form.get("password")
+    email = request.form.get("email", "").lower()
+    password = request.form.get("password", "")
+
+    if not email or not password:
+        return "❌ Compila tutto"
 
     if email in users:
-        return "Utente esistente"
+        return "❌ Utente già esistente"
 
     users[email] = {
-        "password": generate_password_hash(password)
+        "password": generate_password_hash(password),
+        "messages": 0
     }
 
     save_users(users)
@@ -104,62 +119,65 @@ def register():
 def login():
     users = load_users()
 
-    email = request.form.get("email").lower()
-    password = request.form.get("password")
+    email = request.form.get("email", "").lower()
+    password = request.form.get("password", "")
 
     if email in users and check_password_hash(users[email]["password"], password):
         session["user"] = email
         return redirect("/dashboard")
 
-    return "Login fallito"
+    return "❌ Login fallito"
 
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    return render_template("dashboard.html")
+    return render_template("dashboard.html", user=get_user())
 
 # ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
 
-    prompt = request.form.get("prompt")
+    prompt = request.form.get("prompt", "")
 
     if not prompt:
         return jsonify({"response": "Scrivi qualcosa"})
 
-    # 🎯 AI INTELLIGENTE (AUTO MODE)
+    # 🔥 AI SMART FEATURES
     if "tiktok" in prompt.lower():
-        prompt = f"Crea idea TikTok + script + caption: {prompt}"
+        prompt = f"Crea idea TikTok + caption: {prompt}"
 
     elif "caption" in prompt.lower():
-        prompt = f"Crea caption social coinvolgente: {prompt}"
+        prompt = f"Crea caption social breve: {prompt}"
 
     elif "thumbnail" in prompt.lower():
         prompt = f"Crea idea thumbnail YouTube: {prompt}"
 
     elif "riassunto" in prompt.lower():
-        prompt = f"Fai riassunto semplice e chiaro: {prompt}"
+        prompt = f"Fai riassunto semplice: {prompt}"
 
     elif "ecommerce" in prompt.lower():
-        prompt = f"Crea descrizione prodotto persuasiva: {prompt}"
+        prompt = f"Crea descrizione prodotto e strategia vendita: {prompt}"
 
     elif "email" in prompt.lower():
-        prompt = f"Crea email marketing: {prompt}"
+        prompt = f"Scrivi email marketing professionale: {prompt}"
+
+    elif "codice" in prompt.lower() or "python" in prompt.lower():
+        prompt = f"Scrivi codice completo pronto da copiare: {prompt}"
 
     reply = ask_ai(prompt)
 
     return jsonify({"response": reply})
 
-# ---------------- PDF GENERATOR ----------------
+# ---------------- PDF ----------------
 @app.route("/generate-pdf", methods=["POST"])
 @login_required
 def generate_pdf():
 
-    text = request.form.get("text")
+    text = request.form.get("text", "")
 
-    filename = f"file_{uuid.uuid4().hex}.pdf"
+    filename = f"{uuid.uuid4().hex}.pdf"
     doc = SimpleDocTemplate(filename)
     styles = getSampleStyleSheet()
 
@@ -181,11 +199,11 @@ def generate_pdf():
 @login_required
 def voice_chat():
 
-    text = request.form.get("text")
+    text = request.form.get("text", "")
 
     reply = ask_ai(text)
 
-    filename = f"audio_{uuid.uuid4().hex}.mp3"
+    filename = f"{uuid.uuid4().hex}.mp3"
     gTTS(reply, lang="it").save(filename)
 
     @after_this_request
@@ -200,6 +218,7 @@ def voice_chat():
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
+@login_required
 def logout():
     session.clear()
     return redirect("/")
