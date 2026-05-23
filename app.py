@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
-import os, json, uuid, time
+import os, json, uuid, time, base64
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -52,8 +52,8 @@ def login_required(f):
 def get_user():
     return load_users().get(session.get("user"))
 
-# ---------------- AI ----------------
-def ask_ai(messages):
+# ---------------- AI TEXT ----------------
+def ask_ai(messages, model="mistral-small-latest"):
 
     headers = {
         "Authorization": f"Bearer {MISTRAL_API_KEY}",
@@ -61,7 +61,7 @@ def ask_ai(messages):
     }
 
     payload = {
-        "model": "mistral-small-latest",
+        "model": model,
         "messages": messages,
         "temperature": 0.7
     }
@@ -75,8 +75,49 @@ def ask_ai(messages):
 
         return "⚠️ Errore AI"
 
-    except:
+    except Exception as e:
+        print(e)
         return "⚠️ Server occupato"
+
+# ---------------- AI IMAGE ----------------
+def analyze_image(prompt, image_file):
+
+    image_bytes = image_file.read()
+    base64_image = base64.b64encode(image_bytes).decode("utf-8")
+
+    headers = {
+        "Authorization": f"Bearer {MISTRAL_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "pixtral-12b-latest",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": prompt or "Descrivi questa immagine"},
+                    {
+                        "type": "image_url",
+                        "image_url": f"data:image/jpeg;base64,{base64_image}"
+                    }
+                ]
+            }
+        ]
+    }
+
+    try:
+        r = requests.post(MISTRAL_URL, headers=headers, json=payload)
+        data = r.json()
+
+        if "choices" in data:
+            return data["choices"][0]["message"]["content"]
+
+        return "⚠️ Errore analisi immagine"
+
+    except Exception as e:
+        print(e)
+        return "⚠️ Errore server immagini"
 
 # ---------------- HOME ----------------
 @app.route("/")
@@ -85,7 +126,6 @@ def home():
         return redirect("/dashboard")
     return render_template("login.html")
 
-# ✅ PAGINA REGISTRAZIONE (FIX IMPORTANTE)
 @app.route("/register-page")
 def register_page():
     return render_template("register.html")
@@ -132,7 +172,7 @@ def login():
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT ----------------
+# ---------------- CHAT (TESTO + IMMAGINE) ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
@@ -142,16 +182,23 @@ def chat():
     history = user.get("history", [])
 
     prompt = request.form.get("prompt", "")
+    image = request.files.get("image")
 
-    system = {
-        "role": "system",
-        "content": "Rispondi in modo naturale e breve. Scrivi codice solo se richiesto."
-    }
+    if not prompt and not image:
+        return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
-    history.append({"role": "user", "content": prompt})
-    messages = [system] + history[-5:]
+    # 🔥 SE IMMAGINE
+    if image:
+        reply = analyze_image(prompt, image)
+    else:
+        system = {
+            "role": "system",
+            "content": "Rispondi in modo naturale, veloce e utile."
+        }
 
-    reply = ask_ai(messages)
+        history.append({"role": "user", "content": prompt})
+        messages = [system] + history[-5:]
+        reply = ask_ai(messages)
 
     history.append({"role": "assistant", "content": reply})
     user["history"] = history
@@ -166,7 +213,6 @@ def chat():
 def generate_pdf():
 
     text = request.form.get("text", "")
-
     filename = f"{uuid.uuid4().hex}.pdf"
 
     doc = SimpleDocTemplate(filename)
@@ -188,12 +234,15 @@ def generate_pdf():
 
     return send_file(filename, as_attachment=True)
 
-# ---------------- VOICE ----------------
+# ---------------- VOICE CHAT ----------------
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
 
     text = request.form.get("text", "")
+
+    if not text:
+        return "❌ Nessun testo", 400
 
     reply = ask_ai([
         {"role": "user", "content": text}
