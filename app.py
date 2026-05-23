@@ -77,7 +77,6 @@ def ask_ai(messages, model="mistral-small-latest"):
 
             print("ERRORE API:", data)
 
-            # fallback modello
             if model != "open-mistral-7b":
                 return ask_ai(messages, "open-mistral-7b")
 
@@ -178,42 +177,44 @@ def chat():
     if not prompt and not image_file:
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
-    # 🔥 SUPER AI SYSTEM
+    # 🔥 SYSTEM CHATGPT STYLE
     system = {
         "role": "system",
         "content": """
 Sei un assistente avanzato tipo ChatGPT.
 
-Regole:
-- Risposte brevi, chiare e utili
-- Linguaggio naturale e umano
-- Vai diretto al punto
+REGOLE:
 
-Capacità:
-- Programmazione completa (Python, JS, HTML)
-- Debug errori e server
+1. CODICE:
+- Usa SEMPRE blocchi ```linguaggio
+- Nessun testo sopra
+- Codice pronto da copiare
+
+2. TESTI:
+- Puliti
+- Senza introduzioni inutili
+
+3. RISPOSTE:
+- Brevi
+- Dirette
+- Naturali
+
+CAPACITÀ:
+- Programmazione
+- Debug
 - Creazione app/web
-- Analisi richieste utenti
-- Suggerimenti UI/UX
-- Traduzioni
-- Riassunti
 - Scrittura testi
-- Idee startup
+- Traduzioni
+- Idee
 - Supporto tecnico
-- Generazione codice
-- Sicurezza base
-- Ottimizzazione performance
-- Supporto deploy (Render, GitHub)
 """
     }
 
     try:
-        # 📷 IMMAGINE (fallback intelligente)
         if image_file:
             prompt = prompt or "Descrivi questa immagine"
             history.append({"role": "user", "content": prompt})
             messages = [system] + history[-5:]
-
         else:
             history.append({"role": "user", "content": prompt})
             messages = [system] + history[-5:]
