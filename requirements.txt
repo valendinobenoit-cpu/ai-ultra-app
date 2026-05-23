@@ -4,4 +4,5 @@ werkzeug
 gtts
 requests
 gunicorn
+reportlab
 mistralai==1.2.0
