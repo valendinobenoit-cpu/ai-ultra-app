@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, jsonify, redirect, session, send_file, after_this_request
 import os, json, uuid, base64, time
 from dotenv import load_dotenv
@@ -75,6 +74,12 @@ def ask_ai(messages, model="mistral-small-latest"):
 
             if "choices" in data:
                 return data["choices"][0]["message"]["content"]
+
+            print("ERRORE API:", data)
+
+            # fallback modello
+            if model != "open-mistral-7b":
+                return ask_ai(messages, "open-mistral-7b")
 
         except Exception as e:
             print("ERRORE:", str(e))
@@ -173,41 +178,42 @@ def chat():
     if not prompt and not image_file:
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
-    # 🔥 SUPER SYSTEM (ChatGPT-like)
+    # 🔥 SUPER AI SYSTEM
     system = {
         "role": "system",
         "content": """
 Sei un assistente avanzato tipo ChatGPT.
-Risposte brevi, naturali e intelligenti.
-
-Capacità:
-- Programmazione completa
-- Debug errori
-- Creazione app/web
-- Idee startup
-- Traduzioni
-- Riassunti
-- Analisi immagini
-- Consigli tech
-- Scrittura testi
-- Spiegazioni semplici
-- Generazione codice
-- Supporto utenti
-- Conversazione naturale
 
 Regole:
-- NON fare testi lunghi
-- Rispondi diretto
-- Sii utile subito
+- Risposte brevi, chiare e utili
+- Linguaggio naturale e umano
+- Vai diretto al punto
+
+Capacità:
+- Programmazione completa (Python, JS, HTML)
+- Debug errori e server
+- Creazione app/web
+- Analisi richieste utenti
+- Suggerimenti UI/UX
+- Traduzioni
+- Riassunti
+- Scrittura testi
+- Idee startup
+- Supporto tecnico
+- Generazione codice
+- Sicurezza base
+- Ottimizzazione performance
+- Supporto deploy (Render, GitHub)
 """
     }
 
     try:
+        # 📷 IMMAGINE (fallback intelligente)
         if image_file:
-            # ⚠️ Mistral immagini limitate → fallback descrizione
             prompt = prompt or "Descrivi questa immagine"
             history.append({"role": "user", "content": prompt})
             messages = [system] + history[-5:]
+
         else:
             history.append({"role": "user", "content": prompt})
             messages = [system] + history[-5:]
