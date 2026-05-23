@@ -24,7 +24,6 @@ app.config.update(
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
-ADMIN_CODE = os.getenv("ADMIN_CODE", "1234")
 USERS_FILE = "users.json"
 
 # ---------------- DATABASE ----------------
@@ -45,17 +44,15 @@ def save_users(users):
 def login_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        if "user" not in session and "admin" not in session:
+        if "user" not in session:
             return redirect("/")
         return f(*args, **kwargs)
     return wrapper
 
 def get_user():
-    if "admin" in session:
-        return {"role": "admin"}
     return load_users().get(session.get("user"))
 
-# ---------------- AI CORE ----------------
+# ---------------- AI ----------------
 def ask_ai(messages):
 
     headers = {
@@ -78,15 +75,20 @@ def ask_ai(messages):
 
         return "⚠️ Errore AI"
 
-    except Exception as e:
-        return f"❌ {str(e)}"
+    except:
+        return "⚠️ Server occupato"
 
 # ---------------- HOME ----------------
 @app.route("/")
 def home():
-    if "user" in session or "admin" in session:
+    if "user" in session:
         return redirect("/dashboard")
     return render_template("login.html")
+
+# ✅ PAGINA REGISTRAZIONE (FIX IMPORTANTE)
+@app.route("/register-page")
+def register_page():
+    return render_template("register.html")
 
 # ---------------- REGISTER ----------------
 @app.route("/register", methods=["POST"])
@@ -96,8 +98,11 @@ def register():
     email = request.form.get("email", "").lower()
     password = request.form.get("password", "")
 
+    if not email or not password:
+        return "❌ Compila tutto"
+
     if email in users:
-        return "Utente esiste"
+        return "❌ Utente già esistente"
 
     users[email] = {
         "password": generate_password_hash(password),
@@ -119,7 +124,7 @@ def login():
         session["user"] = email
         return redirect("/dashboard")
 
-    return "Login fallito"
+    return "❌ Login fallito"
 
 # ---------------- DASHBOARD ----------------
 @app.route("/dashboard")
@@ -138,21 +143,12 @@ def chat():
 
     prompt = request.form.get("prompt", "")
 
-    if not prompt:
-        return jsonify({"response": "Scrivi qualcosa"})
-
-    # 🔥 SYSTEM INTELLIGENTE
     system = {
         "role": "system",
-        "content": """
-Rispondi in modo naturale, umano e breve.
-Scrivi codice SOLO se l'utente lo chiede.
-Se scrivi codice, usa blocchi ```.
-"""
+        "content": "Rispondi in modo naturale e breve. Scrivi codice solo se richiesto."
     }
 
     history.append({"role": "user", "content": prompt})
-
     messages = [system] + history[-5:]
 
     reply = ask_ai(messages)
@@ -164,51 +160,26 @@ Se scrivi codice, usa blocchi ```.
 
     return jsonify({"response": reply})
 
-# ---------------- VOICE ----------------
-@app.route("/voice-chat", methods=["POST"])
-@login_required
-def voice_chat():
-
-    text = request.form.get("text", "")
-
-    messages = [
-        {"role": "system", "content": "Risposte brevi e naturali"},
-        {"role": "user", "content": text}
-    ]
-
-    reply = ask_ai(messages)
-
-    filename = f"audio_{uuid.uuid4().hex}.mp3"
-    gTTS(reply, lang="it").save(filename)
-
-    @after_this_request
-    def remove_file(response):
-        try:
-            os.remove(filename)
-        except:
-            pass
-        return response
-
-    return send_file(filename, mimetype="audio/mpeg")
-
-# ---------------- PDF GENERATOR ----------------
+# ---------------- PDF ----------------
 @app.route("/generate-pdf", methods=["POST"])
 @login_required
 def generate_pdf():
 
     text = request.form.get("text", "")
 
-    filename = f"file_{uuid.uuid4().hex}.pdf"
+    filename = f"{uuid.uuid4().hex}.pdf"
 
     doc = SimpleDocTemplate(filename)
     styles = getSampleStyleSheet()
 
-    content = [Paragraph(text, styles["Normal"])]
+    content = []
+    for line in text.split("\n"):
+        content.append(Paragraph(line, styles["Normal"]))
 
     doc.build(content)
 
     @after_this_request
-    def remove_file(response):
+    def remove(response):
         try:
             os.remove(filename)
         except:
@@ -217,33 +188,29 @@ def generate_pdf():
 
     return send_file(filename, as_attachment=True)
 
-# ---------------- CREATOR TOOLS ----------------
-@app.route("/ai-tools", methods=["POST"])
+# ---------------- VOICE ----------------
+@app.route("/voice-chat", methods=["POST"])
 @login_required
-def ai_tools():
+def voice_chat():
 
-    tool = request.form.get("tool")
-    input_text = request.form.get("text")
+    text = request.form.get("text", "")
 
-    prompts = {
-        "tiktok": f"Crea idea TikTok: {input_text}",
-        "caption": f"Crea caption Instagram: {input_text}",
-        "thumbnail": f"Crea idea thumbnail YouTube: {input_text}",
-        "school": f"Riassumi: {input_text}",
-        "email": f"Scrivi email marketing: {input_text}",
-        "ecommerce": f"Descrizione prodotto: {input_text}"
-    }
+    reply = ask_ai([
+        {"role": "user", "content": text}
+    ])
 
-    prompt = prompts.get(tool, input_text)
+    filename = f"{uuid.uuid4().hex}.mp3"
+    gTTS(reply, lang="it").save(filename)
 
-    messages = [
-        {"role": "system", "content": "Risposte brevi e utili"},
-        {"role": "user", "content": prompt}
-    ]
+    @after_this_request
+    def remove(response):
+        try:
+            os.remove(filename)
+        except:
+            pass
+        return response
 
-    reply = ask_ai(messages)
-
-    return jsonify({"response": reply})
+    return send_file(filename, mimetype="audio/mpeg")
 
 # ---------------- LOGOUT ----------------
 @app.route("/logout")
