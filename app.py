@@ -63,7 +63,7 @@ def ask_ai(messages, model="mistral-small-latest"):
     payload = {
         "model": model,
         "messages": messages,
-        "temperature": 0.7
+        "temperature": 0.6
     }
 
     try:
@@ -73,13 +73,14 @@ def ask_ai(messages, model="mistral-small-latest"):
         if "choices" in data:
             return data["choices"][0]["message"]["content"]
 
+        print("ERRORE AI:", data)
         return "⚠️ Errore AI"
 
     except Exception as e:
         print(e)
         return "⚠️ Server occupato"
 
-# ---------------- AI IMAGE ----------------
+# ---------------- AI IMAGE ANALYSIS ----------------
 def analyze_image(prompt, image_file):
 
     image_bytes = image_file.read()
@@ -118,6 +119,26 @@ def analyze_image(prompt, image_file):
     except Exception as e:
         print(e)
         return "⚠️ Errore server immagini"
+
+# ---------------- GENERAZIONE PROMPT IMMAGINE ----------------
+def generate_image_prompt(topic):
+
+    messages = [
+        {"role": "system", "content": "Crea prompt per immagini AI (stile Midjourney, realistico, dettagliato)"},
+        {"role": "user", "content": topic}
+    ]
+
+    return ask_ai(messages)
+
+# ---------------- IDEE TIKTOK ----------------
+def generate_tiktok_idea(topic):
+
+    messages = [
+        {"role": "system", "content": "Crea idee virali TikTok brevi, con hook iniziale e struttura"},
+        {"role": "user", "content": topic}
+    ]
+
+    return ask_ai(messages)
 
 # ---------------- HOME ----------------
 @app.route("/")
@@ -172,7 +193,7 @@ def login():
 def dashboard():
     return render_template("dashboard.html", user=get_user())
 
-# ---------------- CHAT (TESTO + IMMAGINE) ----------------
+# ---------------- CHAT ----------------
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
@@ -187,15 +208,18 @@ def chat():
     if not prompt and not image:
         return jsonify({"response": "❌ Scrivi qualcosa o carica immagine"})
 
-    # 🔥 SE IMMAGINE
-    if image:
-        reply = analyze_image(prompt, image)
-    else:
-        system = {
-            "role": "system",
-            "content": "Rispondi in modo naturale, veloce e utile."
-        }
+    # 🎯 FUNZIONI SPECIALI
+    if prompt.startswith("/tiktok"):
+        reply = generate_tiktok_idea(prompt.replace("/tiktok", ""))
 
+    elif prompt.startswith("/thumbnail"):
+        reply = generate_image_prompt(prompt.replace("/thumbnail", ""))
+
+    elif image:
+        reply = analyze_image(prompt, image)
+
+    else:
+        system = {"role": "system", "content": "Rispondi veloce, naturale e utile"}
         history.append({"role": "user", "content": prompt})
         messages = [system] + history[-5:]
         reply = ask_ai(messages)
