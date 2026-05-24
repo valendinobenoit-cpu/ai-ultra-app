@@ -1,7 +1,7 @@
 flask
-python-dotenv
-werkzeug
 gtts
 requests
-gunicorn
 reportlab
+python-dotenv
+gunicorn
+replicate
