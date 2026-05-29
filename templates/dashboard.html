@@ -1,10 +1,15 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
+
 <meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>AI Ultra Elite</title>
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;600;700&display=swap" rel="stylesheet">
 
 <style>
 
@@ -13,14 +18,20 @@
 --bg1:#020617;
 --bg2:#0f172a;
 --glass:rgba(255,255,255,0.05);
---border:rgba(255,255,255,0.1);
+--border:rgba(255,255,255,0.08);
+}
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
 }
 
 body{
 font-family:"Inter";
-margin:0;
-color:white;
+height:100vh;
 overflow:hidden;
+color:white;
 background:linear-gradient(-45deg,#020617,#0f172a,#020617,#1e293b);
 background-size:400% 400%;
 animation:bg 15s ease infinite;
@@ -35,21 +46,22 @@ animation:bg 15s ease infinite;
 /* SIDEBAR */
 
 .sidebar{
+position:fixed;
+left:0;
+top:0;
 width:260px;
 height:100vh;
-position:fixed;
+padding:25px;
 background:rgba(255,255,255,0.04);
 backdrop-filter:blur(25px);
 border-right:1px solid var(--border);
-padding:25px;
-box-sizing:border-box;
 }
 
 .logo{
 font-size:24px;
 font-weight:700;
 color:var(--primary);
-margin-bottom:30px;
+margin-bottom:35px;
 text-shadow:0 0 20px rgba(76,201,240,.8);
 }
 
@@ -57,14 +69,14 @@ text-shadow:0 0 20px rgba(76,201,240,.8);
 display:block;
 padding:14px;
 margin-bottom:10px;
-border-radius:12px;
-color:#94a3b8;
+border-radius:14px;
 text-decoration:none;
+color:#94a3b8;
 transition:.25s;
 }
 
 .menu a:hover{
-background:rgba(255,255,255,0.05);
+background:rgba(255,255,255,.05);
 color:white;
 transform:translateX(5px);
 }
@@ -84,10 +96,9 @@ flex-direction:column;
 flex:1;
 overflow-y:auto;
 padding:30px 20px 160px;
+max-width:950px;
 width:100%;
-max-width:900px;
 margin:auto;
-box-sizing:border-box;
 }
 
 /* MESSAGE */
@@ -105,19 +116,17 @@ transform:translateY(10px);
 }
 }
 
+.user{
+justify-content:flex-end;
+}
+
 .bubble{
 padding:14px;
 border-radius:18px;
-max-width:75%;
 line-height:1.6;
+max-width:75%;
 white-space:pre-wrap;
 word-wrap:break-word;
-}
-
-/* USER */
-
-.user{
-justify-content:flex-end;
 }
 
 .user .bubble{
@@ -125,30 +134,29 @@ background:linear-gradient(135deg,#2563eb,#1d4ed8);
 box-shadow:0 0 20px rgba(37,99,235,.4);
 }
 
-/* BOT */
-
 .bot .bubble{
-background:rgba(255,255,255,0.05);
-border:1px solid rgba(255,255,255,0.08);
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
 backdrop-filter:blur(10px);
 }
 
-/* AI IMAGE */
+/* IMMAGINI */
 
 .ai-image{
 width:100%;
 max-width:350px;
-border-radius:14px;
+border-radius:16px;
 margin-top:10px;
 display:block;
+box-shadow:0 0 25px rgba(0,0,0,.4);
 }
 
-/* AI VIDEO */
+/* VIDEO */
 
 .ai-video{
 width:100%;
-max-width:400px;
-border-radius:14px;
+max-width:450px;
+border-radius:16px;
 margin-top:10px;
 }
 
@@ -161,18 +169,17 @@ left:260px;
 width:calc(100% - 260px);
 padding:20px;
 background:linear-gradient(to top,#020617,transparent);
-box-sizing:border-box;
 }
 
 .input-box{
-max-width:900px;
+max-width:950px;
 margin:auto;
 display:flex;
 gap:10px;
 padding:12px;
 border-radius:25px;
-background:rgba(255,255,255,0.05);
-border:1px solid rgba(255,255,255,0.08);
+background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
 backdrop-filter:blur(20px);
 }
 
@@ -199,6 +206,7 @@ border-radius:12px;
 background:#1e293b;
 color:white;
 transition:.2s;
+font-size:15px;
 }
 
 button:hover{
@@ -241,28 +249,19 @@ border-radius:10px;
 /* VOICE */
 
 .recording{
-box-shadow:0 0 20px red !important;
+box-shadow:0 0 25px red !important;
 }
 
-/* AI SPEAKING */
+/* USER INFO */
 
-.speaking{
-animation:pulse 1s infinite;
-}
-
-@keyframes pulse{
-0%{
-box-shadow:0 0 10px rgba(76,201,240,.2);
-}
-50%{
-box-shadow:0 0 30px rgba(76,201,240,.8);
-}
-100%{
-box-shadow:0 0 10px rgba(76,201,240,.2);
-}
+.user-info{
+margin-top:20px;
+font-size:12px;
+color:#64748b;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -280,16 +279,15 @@ AI Ultra
 <a href="#">💬 Chat</a>
 <a href="#">🖼️ AI Images</a>
 <a href="#">🎬 AI Video</a>
+<a href="#">🧠 Smart Memory</a>
 <a href="#">🎤 Voice AI</a>
 <a href="#">💎 Upgrade</a>
 <a href="/logout">🚪 Logout</a>
 
 </div>
 
-<div style="margin-top:20px;font-size:12px;color:#64748b;">
-
+<div class="user-info">
 {{ user.plan }} • {{ user.messages }}
-
 </div>
 
 </div>
@@ -300,16 +298,13 @@ AI Ultra
 
 <div class="chat" id="chat"></div>
 
-<!-- 🔥 AUDIO AI -->
-<audio id="aiAudio"></audio>
-
 <div class="loader" id="loader">
 AI sta pensando...
 </div>
 
 <div class="input-wrapper">
 
-<div class="input-box" id="inputBox">
+<div class="input-box">
 
 <input
 id="input"
@@ -360,18 +355,16 @@ const file = document.getElementById("file");
 const preview = document.getElementById("preview");
 const previewImg = document.getElementById("previewImg");
 const micBtn = document.getElementById("micBtn");
-const aiAudio = document.getElementById("aiAudio");
-const inputBox = document.getElementById("inputBox");
 
 /* ---------------- ADD MESSAGE ---------------- */
 
-function add(role, text, isImage=false, isVideo=false){
+function add(role,text,isImage=false,isVideo=false){
 
 let div = document.createElement("div");
 
 div.className = "msg " + role;
 
-/* 🔥 IMMAGINE */
+/* IMMAGINE */
 
 if(isImage){
 
@@ -383,7 +376,7 @@ div.innerHTML = `
 
 }
 
-/* 🎬 VIDEO */
+/* VIDEO */
 
 else if(isVideo){
 
@@ -397,7 +390,7 @@ div.innerHTML = `
 
 }
 
-/* 💬 TESTO */
+/* TESTO */
 
 else{
 
@@ -458,47 +451,6 @@ chat.scrollTop = chat.scrollHeight;
 
 }
 
-/* ---------------- AI VOICE ---------------- */
-
-async function playVoice(text){
-
-try{
-
-inputBox.classList.add("speaking");
-
-let voiceForm = new FormData();
-
-voiceForm.append("text", text);
-
-let voiceRes = await fetch("/voice-chat",{
-method:"POST",
-body:voiceForm
-});
-
-let blob = await voiceRes.blob();
-
-let audioUrl = URL.createObjectURL(blob);
-
-aiAudio.src = audioUrl;
-
-await aiAudio.play();
-
-aiAudio.onended = ()=>{
-
-inputBox.classList.remove("speaking");
-
-};
-
-}catch(e){
-
-console.log("Errore audio:", e);
-
-inputBox.classList.remove("speaking");
-
-}
-
-}
-
 /* ---------------- SEND ---------------- */
 
 async function send(){
@@ -509,7 +461,7 @@ if(!text && !selectedImage){
 return;
 }
 
-/* USER MSG */
+/* USER MESSAGE */
 
 add("user",text);
 
@@ -540,7 +492,7 @@ let data = await res.json();
 
 loader.style.display = "none";
 
-/* 🔥 IMMAGINE */
+/* IMMAGINE */
 
 if(data.image){
 
@@ -548,7 +500,7 @@ add("bot",data.image,true,false);
 
 }
 
-/* 🎬 VIDEO */
+/* VIDEO */
 
 else if(data.video){
 
@@ -556,15 +508,13 @@ add("bot",data.video,false,true);
 
 }
 
-/* 💬 TESTO */
+/* TESTO */
 
 else{
 
 add("bot",data.response);
 
-/* 🔥 VOCE AUTOMATICA */
-
-playVoice(data.response);
+speak(data.response);
 
 }
 
@@ -579,6 +529,22 @@ console.log(e);
 }
 
 removeImage();
+
+}
+
+/* ---------------- TEXT TO SPEECH ---------------- */
+
+function speak(text){
+
+const speech = new SpeechSynthesisUtterance(text);
+
+speech.lang = "it-IT";
+
+speech.rate = 1;
+
+speech.pitch = 1;
+
+window.speechSynthesis.speak(speech);
 
 }
 
@@ -612,9 +578,10 @@ preview.style.display = "none";
 
 }
 
-/* ---------------- VOICE ---------------- */
+/* ---------------- VOICE AI ---------------- */
 
 let rec;
+
 let recording = false;
 
 function toggleMic(){
@@ -627,39 +594,59 @@ return;
 
 }
 
+/* START */
+
 if(!recording){
+
+recording = true;
 
 rec = new webkitSpeechRecognition();
 
 rec.lang = "it-IT";
 
-rec.onstart = ()=>{
+rec.continuous = true;
 
-recording = true;
+rec.interimResults = false;
 
 micBtn.classList.add("recording");
 
-};
+rec.onresult = async e=>{
 
-rec.onresult = e=>{
+let transcript = e.results[e.results.length - 1][0].transcript;
 
-input.value = e.results[0][0].transcript;
+input.value = transcript;
+
+await send();
 
 };
 
 rec.onend = ()=>{
 
-recording = false;
-
-micBtn.classList.remove("recording");
-
-};
+if(recording){
 
 rec.start();
 
 }else{
 
+micBtn.classList.remove("recording");
+
+}
+
+};
+
+rec.start();
+
+}
+
+/* STOP */
+
+else{
+
+recording = false;
+
 rec.stop();
+
+micBtn.classList.remove("recording");
 
 }
 
