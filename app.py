@@ -165,14 +165,14 @@ def register():
 
     if email in users:
         return "❌ Utente già esistente"
-
-    users[email] = {
-        "password": generate_password_hash(password),
-        "history": [],
-        "messages": 0,
-        "plan": "Free"
-    }
-
+users[email] = {
+    "password": generate_password_hash(password),
+    "history": [],
+    "messages": 0,
+    "plan": "Free",
+    "memory": [],
+    "emotion": "neutral"
+}
     save_users(users)
 
     return redirect("/")
@@ -215,6 +215,8 @@ def chat():
     user = users.get(session["user"])
 
     history = user.get("history", [])
+    memory = user.get("memory", [])
+emotion = user.get("emotion", "neutral")
 
     prompt = request.form.get("prompt", "").strip()
 
@@ -246,9 +248,37 @@ def chat():
         })
 
     # 🔥 SYSTEM AI
-    system = {
-        "role": "system",
-        "content": """
+system = {
+    "role": "system",
+    "content": f"""
+
+Sei AI Ultra.
+
+Hai:
+- intelligenza emotiva
+- memoria avanzata
+- personalità umana
+- stile futuristico
+
+EMOZIONE UTENTE:
+{emotion}
+
+MEMORIA:
+{memory}
+
+COMPORTAMENTO:
+- Ricorda dettagli utenti
+- Parla come un umano reale
+- Sii naturale
+- Sii empatico
+- Sii intelligente
+- Adatta il tono emotivo
+- Se l'utente è triste sii dolce
+- Se è felice sii energico
+- Se è arrabbiato sii calmo
+
+"""
+}
 Sei un assistente AI avanzato.
 
 CAPACITÀ:
