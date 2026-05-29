@@ -14,7 +14,9 @@ from gtts import gTTS
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
-# ---------------- INIT ----------------
+# =====================================================
+# INIT
+# =====================================================
 
 load_dotenv()
 
@@ -28,7 +30,9 @@ app.config.update(
     PERMANENT_SESSION_LIFETIME=timedelta(hours=6)
 )
 
-# ---------------- API KEYS ----------------
+# =====================================================
+# API KEYS
+# =====================================================
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
@@ -39,7 +43,9 @@ MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
 USERS_FILE = "users.json"
 
-# ---------------- DATABASE ----------------
+# =====================================================
+# DATABASE
+# =====================================================
 
 def load_users():
 
@@ -48,7 +54,7 @@ def load_users():
 
     try:
 
-        with open(USERS_FILE, "r") as f:
+        with open(USERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
 
     except:
@@ -56,10 +62,12 @@ def load_users():
 
 def save_users(users):
 
-    with open(USERS_FILE, "w") as f:
-        json.dump(users, f, indent=4)
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=4, ensure_ascii=False)
 
-# ---------------- AUTH ----------------
+# =====================================================
+# AUTH
+# =====================================================
 
 def login_required(f):
 
@@ -79,7 +87,9 @@ def get_user():
 
     return users.get(session.get("user"))
 
-# ---------------- AI CHAT ----------------
+# =====================================================
+# AI CHAT
+# =====================================================
 
 def ask_ai(messages):
 
@@ -105,7 +115,7 @@ def ask_ai(messages):
 
         data = r.json()
 
-        print(data)
+        print("MISTRAL RESPONSE:", data)
 
         if "choices" in data:
 
@@ -119,7 +129,9 @@ def ask_ai(messages):
 
         return "⚠️ Server occupato"
 
-# ---------------- GENERAZIONE IMMAGINI ----------------
+# =====================================================
+# IMAGE GENERATION
+# =====================================================
 
 def generate_image(prompt):
 
@@ -132,12 +144,17 @@ def generate_image(prompt):
             }
         )
 
-        print("OUTPUT:", output)
+        print("IMAGE OUTPUT:", output)
 
+        # Se replicate ritorna lista
         if isinstance(output, list):
-            return output[0]
 
-        return output
+            first = output[0]
+
+            return str(first)
+
+        # Se ritorna stringa diretta
+        return str(output)
 
     except Exception as e:
 
@@ -145,7 +162,9 @@ def generate_image(prompt):
 
         return None
 
-# ---------------- HOME ----------------
+# =====================================================
+# HOME
+# =====================================================
 
 @app.route("/")
 def home():
@@ -155,14 +174,18 @@ def home():
 
     return render_template("login.html")
 
-# ---------------- REGISTER PAGE ----------------
+# =====================================================
+# REGISTER PAGE
+# =====================================================
 
 @app.route("/register-page")
 def register_page():
 
     return render_template("register.html")
 
-# ---------------- REGISTER ----------------
+# =====================================================
+# REGISTER
+# =====================================================
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -173,9 +196,11 @@ def register():
     password = request.form.get("password", "").strip()
 
     if not email or not password:
+
         return "❌ Compila tutti i campi"
 
     if email in users:
+
         return "❌ Utente già esistente"
 
     users[email] = {
@@ -191,7 +216,9 @@ def register():
 
     return redirect("/")
 
-# ---------------- LOGIN ----------------
+# =====================================================
+# LOGIN
+# =====================================================
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -210,7 +237,9 @@ def login():
 
     return "❌ Login fallito"
 
-# ---------------- DASHBOARD ----------------
+# =====================================================
+# DASHBOARD
+# =====================================================
 
 @app.route("/dashboard")
 @login_required
@@ -221,7 +250,9 @@ def dashboard():
         user=get_user()
     )
 
-# ---------------- CHAT ----------------
+# =====================================================
+# CHAT
+# =====================================================
 
 @app.route("/chat", methods=["POST"])
 @login_required
@@ -245,7 +276,9 @@ def chat():
 
     lower_prompt = prompt.lower()
 
-    # ---------------- RILEVAMENTO EMOZIONI ----------------
+    # =================================================
+    # EMOTION DETECTION
+    # =================================================
 
     sad_words = [
         "triste",
@@ -287,12 +320,17 @@ def chat():
 
         user["emotion"] = "neutral"
 
-    # ---------------- GENERA IMMAGINI ----------------
+    emotion = user["emotion"]
+
+    # =================================================
+    # IMAGE GENERATION
+    # =================================================
 
     if (
         "crea immagine" in lower_prompt
         or "genera immagine" in lower_prompt
         or "disegna" in lower_prompt
+        or "creami un'immagine" in lower_prompt
     ):
 
         image = generate_image(prompt)
@@ -308,7 +346,9 @@ def chat():
             "response": "❌ Errore generazione immagine"
         })
 
-    # ---------------- MEMORIA ----------------
+    # =================================================
+    # MEMORY
+    # =================================================
 
     if len(prompt) < 120:
 
@@ -318,7 +358,9 @@ def chat():
 
     user["memory"] = memory
 
-    # ---------------- SYSTEM ----------------
+    # =================================================
+    # SYSTEM PROMPT
+    # =================================================
 
     system = {
         "role": "system",
@@ -365,19 +407,23 @@ CAPACITÀ:
 - Startup ideas
 - Debug codice
 - Social media
+- AI assistant
+- Prompt engineering
 
 REGOLE:
 - Rispondi in modo naturale
-- Sii veloce
 - Sii umano
 - Non sembrare robotico
 - Se serve usa emoji
-- Se l'utente chiede codice usa blocchi markdown
+- Se l'utente chiede codice usa markdown
+- Rispondi in italiano
 
 """
     }
 
-    # ---------------- HISTORY ----------------
+    # =================================================
+    # HISTORY
+    # =================================================
 
     history.append({
         "role": "user",
@@ -405,7 +451,9 @@ REGOLE:
         "response": reply
     })
 
-# ---------------- PDF ----------------
+# =====================================================
+# PDF GENERATOR
+# =====================================================
 
 @app.route("/generate-pdf", methods=["POST"])
 @login_required
@@ -445,7 +493,9 @@ def generate_pdf():
         as_attachment=True
     )
 
-# ---------------- VOICE CHAT ----------------
+# =====================================================
+# VOICE CHAT
+# =====================================================
 
 @app.route("/voice-chat", methods=["POST"])
 @login_required
@@ -454,6 +504,7 @@ def voice_chat():
     text = request.form.get("text", "")
 
     if not text:
+
         return "❌ Nessun testo", 400
 
     reply = ask_ai([
@@ -483,7 +534,9 @@ def voice_chat():
         mimetype="audio/mpeg"
     )
 
-# ---------------- LOGOUT ----------------
+# =====================================================
+# LOGOUT
+# =====================================================
 
 @app.route("/logout")
 @login_required
@@ -493,7 +546,9 @@ def logout():
 
     return redirect("/")
 
-# ---------------- RUN ----------------
+# =====================================================
+# RUN
+# =====================================================
 
 if __name__ == "__main__":
 
