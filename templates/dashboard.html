@@ -244,6 +244,24 @@ border-radius:10px;
 box-shadow:0 0 20px red !important;
 }
 
+/* AI SPEAKING */
+
+.speaking{
+animation:pulse 1s infinite;
+}
+
+@keyframes pulse{
+0%{
+box-shadow:0 0 10px rgba(76,201,240,.2);
+}
+50%{
+box-shadow:0 0 30px rgba(76,201,240,.8);
+}
+100%{
+box-shadow:0 0 10px rgba(76,201,240,.2);
+}
+}
+
 </style>
 </head>
 
@@ -262,6 +280,7 @@ AI Ultra
 <a href="#">💬 Chat</a>
 <a href="#">🖼️ AI Images</a>
 <a href="#">🎬 AI Video</a>
+<a href="#">🎤 Voice AI</a>
 <a href="#">💎 Upgrade</a>
 <a href="/logout">🚪 Logout</a>
 
@@ -281,13 +300,16 @@ AI Ultra
 
 <div class="chat" id="chat"></div>
 
+<!-- 🔥 AUDIO AI -->
+<audio id="aiAudio"></audio>
+
 <div class="loader" id="loader">
 AI sta pensando...
 </div>
 
 <div class="input-wrapper">
 
-<div class="input-box">
+<div class="input-box" id="inputBox">
 
 <input
 id="input"
@@ -338,6 +360,8 @@ const file = document.getElementById("file");
 const preview = document.getElementById("preview");
 const previewImg = document.getElementById("previewImg");
 const micBtn = document.getElementById("micBtn");
+const aiAudio = document.getElementById("aiAudio");
+const inputBox = document.getElementById("inputBox");
 
 /* ---------------- ADD MESSAGE ---------------- */
 
@@ -385,7 +409,7 @@ div.innerHTML = `
 
 chat.appendChild(div);
 
-/* TYPE EFFECT SOLO TESTO */
+/* TYPE EFFECT */
 
 if(!isImage && !isVideo){
 
@@ -431,6 +455,47 @@ write();
 function scrollBottom(){
 
 chat.scrollTop = chat.scrollHeight;
+
+}
+
+/* ---------------- AI VOICE ---------------- */
+
+async function playVoice(text){
+
+try{
+
+inputBox.classList.add("speaking");
+
+let voiceForm = new FormData();
+
+voiceForm.append("text", text);
+
+let voiceRes = await fetch("/voice-chat",{
+method:"POST",
+body:voiceForm
+});
+
+let blob = await voiceRes.blob();
+
+let audioUrl = URL.createObjectURL(blob);
+
+aiAudio.src = audioUrl;
+
+await aiAudio.play();
+
+aiAudio.onended = ()=>{
+
+inputBox.classList.remove("speaking");
+
+};
+
+}catch(e){
+
+console.log("Errore audio:", e);
+
+inputBox.classList.remove("speaking");
+
+}
 
 }
 
@@ -496,6 +561,10 @@ add("bot",data.video,false,true);
 else{
 
 add("bot",data.response);
+
+/* 🔥 VOCE AUTOMATICA */
+
+playVoice(data.response);
 
 }
 
