@@ -1,9 +1,8 @@
 flask
 python-dotenv
-werkzeug
-gtts
 requests
-gunicorn
 replicate
+gunicorn
+gtts
 reportlab
-pillow
+werkzeug
