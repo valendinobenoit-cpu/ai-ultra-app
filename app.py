@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, jsonify, redirect, session, s
 import os
 import json
 import uuid
-import time
 import requests
 import replicate
 
@@ -16,6 +15,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
 
 # ---------------- INIT ----------------
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -29,10 +29,10 @@ app.config.update(
 )
 
 # ---------------- API KEYS ----------------
+
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 
-# 🔥 IMPORTANTE
 os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
 
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
@@ -40,12 +40,14 @@ MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 USERS_FILE = "users.json"
 
 # ---------------- DATABASE ----------------
+
 def load_users():
 
     if not os.path.exists(USERS_FILE):
         return {}
 
     try:
+
         with open(USERS_FILE, "r") as f:
             return json.load(f)
 
@@ -58,6 +60,7 @@ def save_users(users):
         json.dump(users, f, indent=4)
 
 # ---------------- AUTH ----------------
+
 def login_required(f):
 
     @wraps(f)
@@ -77,6 +80,7 @@ def get_user():
     return users.get(session.get("user"))
 
 # ---------------- AI CHAT ----------------
+
 def ask_ai(messages):
 
     headers = {
@@ -104,15 +108,19 @@ def ask_ai(messages):
         print(data)
 
         if "choices" in data:
+
             return data["choices"][0]["message"]["content"]
 
         return "⚠️ Errore AI"
 
     except Exception as e:
+
         print("AI ERROR:", e)
+
         return "⚠️ Server occupato"
 
-# ---------------- GENERA IMMAGINE ----------------
+# ---------------- GENERAZIONE IMMAGINI ----------------
+
 def generate_image(prompt):
 
     try:
@@ -126,18 +134,19 @@ def generate_image(prompt):
 
         print("OUTPUT:", output)
 
-        # 🔥 SE È UNA LISTA
         if isinstance(output, list):
             return output[0]
 
-        # 🔥 SE È STRINGA
         return output
 
     except Exception as e:
+
         print("ERRORE IMMAGINE:", e)
+
         return None
 
 # ---------------- HOME ----------------
+
 @app.route("/")
 def home():
 
@@ -147,11 +156,14 @@ def home():
     return render_template("login.html")
 
 # ---------------- REGISTER PAGE ----------------
+
 @app.route("/register-page")
 def register_page():
+
     return render_template("register.html")
 
 # ---------------- REGISTER ----------------
+
 @app.route("/register", methods=["POST"])
 def register():
 
@@ -165,19 +177,22 @@ def register():
 
     if email in users:
         return "❌ Utente già esistente"
-users[email] = {
-    "password": generate_password_hash(password),
-    "history": [],
-    "messages": 0,
-    "plan": "Free",
-    "memory": [],
-    "emotion": "neutral"
-}
+
+    users[email] = {
+        "password": generate_password_hash(password),
+        "history": [],
+        "messages": 0,
+        "plan": "Free",
+        "memory": [],
+        "emotion": "neutral"
+    }
+
     save_users(users)
 
     return redirect("/")
 
 # ---------------- LOGIN ----------------
+
 @app.route("/login", methods=["POST"])
 def login():
 
@@ -196,6 +211,7 @@ def login():
     return "❌ Login fallito"
 
 # ---------------- DASHBOARD ----------------
+
 @app.route("/dashboard")
 @login_required
 def dashboard():
@@ -206,6 +222,7 @@ def dashboard():
     )
 
 # ---------------- CHAT ----------------
+
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
@@ -216,18 +233,62 @@ def chat():
 
     history = user.get("history", [])
     memory = user.get("memory", [])
-emotion = user.get("emotion", "neutral")
+    emotion = user.get("emotion", "neutral")
 
     prompt = request.form.get("prompt", "").strip()
 
     if not prompt:
+
         return jsonify({
             "response": "❌ Scrivi qualcosa"
         })
 
     lower_prompt = prompt.lower()
 
-    # 🔥 GENERAZIONE IMMAGINI
+    # ---------------- RILEVAMENTO EMOZIONI ----------------
+
+    sad_words = [
+        "triste",
+        "depresso",
+        "male",
+        "piango",
+        "solo",
+        "vuoto"
+    ]
+
+    happy_words = [
+        "felice",
+        "fantastico",
+        "bellissimo",
+        "wow",
+        "contento"
+    ]
+
+    angry_words = [
+        "odio",
+        "arrabbiato",
+        "nervoso",
+        "schifo"
+    ]
+
+    if any(x in lower_prompt for x in sad_words):
+
+        user["emotion"] = "sad"
+
+    elif any(x in lower_prompt for x in happy_words):
+
+        user["emotion"] = "happy"
+
+    elif any(x in lower_prompt for x in angry_words):
+
+        user["emotion"] = "angry"
+
+    else:
+
+        user["emotion"] = "neutral"
+
+    # ---------------- GENERA IMMAGINI ----------------
+
     if (
         "crea immagine" in lower_prompt
         or "genera immagine" in lower_prompt
@@ -247,10 +308,21 @@ emotion = user.get("emotion", "neutral")
             "response": "❌ Errore generazione immagine"
         })
 
-    # 🔥 SYSTEM AI
-system = {
-    "role": "system",
-    "content": f"""
+    # ---------------- MEMORIA ----------------
+
+    if len(prompt) < 120:
+
+        memory.append(prompt)
+
+    memory = memory[-20:]
+
+    user["memory"] = memory
+
+    # ---------------- SYSTEM ----------------
+
+    system = {
+        "role": "system",
+        "content": f"""
 
 Sei AI Ultra.
 
@@ -277,9 +349,37 @@ COMPORTAMENTO:
 - Se è felice sii energico
 - Se è arrabbiato sii calmo
 
+CAPACITÀ:
+- Scrittura testi
+- Programmazione
+- HTML
+- CSS
+- JavaScript
+- Python
+- Flask
+- TikTok marketing
+- Instagram captions
+- Email marketing
+- Ecommerce
+- SEO
+- Startup ideas
+- Debug codice
+- Social media
+
+REGOLE:
+- Rispondi in modo naturale
+- Sii veloce
+- Sii umano
+- Non sembrare robotico
+- Se serve usa emoji
+- Se l'utente chiede codice usa blocchi markdown
+
 """
-}
- history.append({
+    }
+
+    # ---------------- HISTORY ----------------
+
+    history.append({
         "role": "user",
         "content": prompt
     })
@@ -294,6 +394,7 @@ COMPORTAMENTO:
     })
 
     user["history"] = history
+
     user["messages"] += 1
 
     users[session["user"]] = user
@@ -304,7 +405,8 @@ COMPORTAMENTO:
         "response": reply
     })
 
-# ---------------- GENERA PDF ----------------
+# ---------------- PDF ----------------
+
 @app.route("/generate-pdf", methods=["POST"])
 @login_required
 def generate_pdf():
@@ -344,6 +446,7 @@ def generate_pdf():
     )
 
 # ---------------- VOICE CHAT ----------------
+
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
@@ -381,6 +484,7 @@ def voice_chat():
     )
 
 # ---------------- LOGOUT ----------------
+
 @app.route("/logout")
 @login_required
 def logout():
@@ -390,6 +494,7 @@ def logout():
     return redirect("/")
 
 # ---------------- RUN ----------------
+
 if __name__ == "__main__":
 
     app.run(
