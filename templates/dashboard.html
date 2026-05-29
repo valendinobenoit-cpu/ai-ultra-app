@@ -4,7 +4,6 @@
 <head>
 
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>AI Ultra Elite</title>
@@ -55,6 +54,7 @@ padding:25px;
 background:rgba(255,255,255,0.04);
 backdrop-filter:blur(25px);
 border-right:1px solid var(--border);
+z-index:10;
 }
 
 .logo{
@@ -88,6 +88,38 @@ margin-left:260px;
 height:100vh;
 display:flex;
 flex-direction:column;
+position:relative;
+}
+
+/* AI ORB */
+
+.ai-orb{
+position:fixed;
+top:30px;
+right:30px;
+width:120px;
+height:120px;
+border-radius:50%;
+background:
+radial-gradient(circle at 30% 30%, #4cc9f0, #0ea5e9, #020617);
+box-shadow:
+0 0 40px #4cc9f0,
+0 0 80px #0ea5e9;
+animation:float 4s ease-in-out infinite;
+z-index:999;
+transition:.3s;
+}
+
+@keyframes float{
+0%{
+transform:translateY(0px) scale(1);
+}
+50%{
+transform:translateY(-10px) scale(1.03);
+}
+100%{
+transform:translateY(0px) scale(1);
+}
 }
 
 /* CHAT */
@@ -127,17 +159,35 @@ line-height:1.6;
 max-width:75%;
 white-space:pre-wrap;
 word-wrap:break-word;
+position:relative;
 }
+
+/* USER */
 
 .user .bubble{
 background:linear-gradient(135deg,#2563eb,#1d4ed8);
 box-shadow:0 0 20px rgba(37,99,235,.4);
 }
 
+/* BOT */
+
 .bot .bubble{
 background:rgba(255,255,255,.05);
 border:1px solid rgba(255,255,255,.08);
 backdrop-filter:blur(10px);
+}
+
+/* TYPING EFFECT */
+
+.typing::after{
+content:"|";
+animation:blink 1s infinite;
+}
+
+@keyframes blink{
+50%{
+opacity:0;
+}
 }
 
 /* IMMAGINI */
@@ -169,6 +219,7 @@ left:260px;
 width:calc(100% - 260px);
 padding:20px;
 background:linear-gradient(to top,#020617,transparent);
+z-index:5;
 }
 
 .input-box{
@@ -278,7 +329,6 @@ AI Ultra
 
 <a href="#">💬 Chat</a>
 <a href="#">🖼️ AI Images</a>
-<a href="#">🎬 AI Video</a>
 <a href="#">🧠 Smart Memory</a>
 <a href="#">🎤 Voice AI</a>
 <a href="#">💎 Upgrade</a>
@@ -296,11 +346,21 @@ AI Ultra
 
 <div class="main">
 
+<!-- AI ORB -->
+
+<div class="ai-orb"></div>
+
+<!-- CHAT -->
+
 <div class="chat" id="chat"></div>
+
+<!-- LOADER -->
 
 <div class="loader" id="loader">
 AI sta pensando...
 </div>
+
+<!-- INPUT -->
 
 <div class="input-wrapper">
 
@@ -355,6 +415,7 @@ const file = document.getElementById("file");
 const preview = document.getElementById("preview");
 const previewImg = document.getElementById("previewImg");
 const micBtn = document.getElementById("micBtn");
+const orb = document.querySelector(".ai-orb");
 
 /* ---------------- ADD MESSAGE ---------------- */
 
@@ -395,7 +456,7 @@ div.innerHTML = `
 else{
 
 div.innerHTML = `
-<div class="bubble"></div>
+<div class="bubble typing"></div>
 `;
 
 }
@@ -433,7 +494,11 @@ i++;
 
 scrollBottom();
 
-setTimeout(write,10);
+setTimeout(write,5);
+
+}else{
+
+el.classList.remove("typing");
 
 }
 
@@ -481,6 +546,14 @@ input.value = "";
 
 loader.style.display = "block";
 
+/* ORB REACTION */
+
+orb.style.transform = "scale(1.2)";
+orb.style.boxShadow = `
+0 0 60px #4cc9f0,
+0 0 120px #0ea5e9
+`;
+
 try{
 
 let res = await fetch("/chat",{
@@ -491,6 +564,14 @@ body:form
 let data = await res.json();
 
 loader.style.display = "none";
+
+/* ORB NORMAL */
+
+orb.style.transform = "scale(1)";
+orb.style.boxShadow = `
+0 0 40px #4cc9f0,
+0 0 80px #0ea5e9
+`;
 
 /* IMMAGINE */
 
@@ -528,6 +609,8 @@ console.log(e);
 
 }
 
+/* RESET IMAGE */
+
 removeImage();
 
 }
@@ -536,6 +619,8 @@ removeImage();
 
 function speak(text){
 
+window.speechSynthesis.cancel();
+
 const speech = new SpeechSynthesisUtterance(text);
 
 speech.lang = "it-IT";
@@ -543,6 +628,8 @@ speech.lang = "it-IT";
 speech.rate = 1;
 
 speech.pitch = 1;
+
+speech.volume = 1;
 
 window.speechSynthesis.speak(speech);
 
@@ -581,7 +668,6 @@ preview.style.display = "none";
 /* ---------------- VOICE AI ---------------- */
 
 let rec;
-
 let recording = false;
 
 function toggleMic(){
