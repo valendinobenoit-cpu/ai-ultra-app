@@ -1,188 +1,180 @@
 // =====================================================
-// FUTURA SYSTEM
+// FUTURA ULTRA
 // =====================================================
 
 let futuraEnabled = false;
+let futuraAvatar = null;
+let futuraMemory = [];
 
 // =====================================================
-// CREA INTERFACCIA FUTURA
+// AVATAR SPEAK
 // =====================================================
 
-function createFutura() {
+function futuraSpeak(text){
 
-    if (document.getElementById("futura")) {
-        return;
+    window.speechSynthesis.cancel();
+
+    const speech = new SpeechSynthesisUtterance(text);
+
+    speech.lang = "it-IT";
+    speech.rate = 1;
+    speech.pitch = 1.1;
+
+    if(futuraAvatar){
+        futuraAvatar.classList.add("talking");
     }
 
-    const futura = document.createElement("div");
+    speech.onend = () => {
 
-    futura.id = "futura";
+        if(futuraAvatar){
+            futuraAvatar.classList.remove("talking");
+        }
 
-    futura.innerHTML = `
+    };
 
-    <div class="futura-overlay">
+    speechSynthesis.speak(speech);
+}
 
-        <div class="futura-grid"></div>
+// =====================================================
+// MEMORY
+// =====================================================
 
-        <div class="futura-scan"></div>
+function saveMemory(text){
 
-        <div class="futura-center">
+    futuraMemory.push(text);
 
-            <div class="futura-title">
-                FUTURA
-            </div>
+    if(futuraMemory.length > 100){
+        futuraMemory.shift();
+    }
 
-            <div class="futura-subtitle">
-                AI OPERATING SYSTEM
-            </div>
+    localStorage.setItem(
+        "futuraMemory",
+        JSON.stringify(futuraMemory)
+    );
+}
 
-            <div class="futura-status">
-                ONLINE
-            </div>
+function loadMemory(){
 
-        </div>
+    const data =
+        localStorage.getItem("futuraMemory");
 
-    </div>
+    if(data){
 
+        futuraMemory = JSON.parse(data);
+
+    }
+
+}
+
+// =====================================================
+// STATUS UPDATE
+// =====================================================
+
+function updateStatus(){
+
+    const status =
+        document.querySelector(".futura-status");
+
+    if(!status) return;
+
+    status.innerHTML =
+        "ONLINE • " +
+        new Date().toLocaleTimeString();
+
+}
+
+setInterval(updateStatus,1000);
+
+// =====================================================
+// PARTICLES
+// =====================================================
+
+function createParticles(){
+
+    const overlay =
+        document.querySelector(".futura-overlay");
+
+    if(!overlay) return;
+
+    for(let i=0;i<100;i++){
+
+        const p =
+            document.createElement("div");
+
+        p.className = "futura-particle";
+
+        p.style.left =
+            Math.random()*100 + "%";
+
+        p.style.animationDuration =
+            (5 + Math.random()*10) + "s";
+
+        overlay.appendChild(p);
+
+    }
+
+}
+
+// =====================================================
+// AVATAR
+// =====================================================
+
+function createAvatar(){
+
+    if(document.getElementById("futura-avatar"))
+        return;
+
+    futuraAvatar =
+        document.createElement("div");
+
+    futuraAvatar.id = "futura-avatar";
+
+    futuraAvatar.innerHTML = `
+        <img src="/static/avatar.png">
     `;
 
-    document.body.appendChild(futura);
+    document.body.appendChild(
+        futuraAvatar
+    );
+
 }
 
 // =====================================================
-// ATTIVA FUTURA
+// FUTURA COMMAND
 // =====================================================
 
-function activateFutura() {
+function futuraCommand(text){
 
-    createFutura();
+    const cmd =
+        text.toLowerCase().trim();
 
-    const futura = document.getElementById("futura");
-
-    futura.style.display = "block";
-
-    futuraEnabled = true;
-
-    document.body.classList.add("futura-active");
-
-    console.log("FUTURA ATTIVA");
-}
-
-// =====================================================
-// DISATTIVA FUTURA
-// =====================================================
-
-function deactivateFutura() {
-
-    const futura = document.getElementById("futura");
-
-    if (futura) {
-        futura.style.display = "none";
-    }
-
-    futuraEnabled = false;
-
-    document.body.classList.remove("futura-active");
-
-    console.log("FUTURA DISATTIVA");
-}
-
-// =====================================================
-// COMANDI CHAT
-// =====================================================
-
-function futuraCommand(text) {
-
-    const cmd = text.toLowerCase().trim();
-
-    // ATTIVAZIONE
-
-    if (
-        cmd === "attiva futura" ||
-        cmd === "futura online" ||
-        cmd === "avvia futura"
-    ) {
+    if(cmd === "attiva futura"){
 
         activateFutura();
 
-        if (typeof add === "function") {
+        add(
+            "bot",
+            "🚀 FUTURA ONLINE\n\nSistema avanzato attivato."
+        );
 
-            add(
-                "bot",
-                "🚀 FUTURA ONLINE\n\nSistemi avanzati attivati."
-            );
-
-        }
+        futuraSpeak(
+            "Futura online. Tutti i sistemi sono operativi."
+        );
 
         return true;
     }
 
-    // DISATTIVAZIONE
-
-    if (
-        cmd === "disattiva futura" ||
-        cmd === "futura offline"
-    ) {
+    if(cmd === "disattiva futura"){
 
         deactivateFutura();
 
-        if (typeof add === "function") {
-
-            add(
-                "bot",
-                "⚡ FUTURA OFFLINE"
-            );
-
-        }
+        add(
+            "bot",
+            "⚡ FUTURA OFFLINE"
+        );
 
         return true;
     }
 
     return false;
 }
-
-// =====================================================
-// AVVIO PAGINA
-// =====================================================
-
-window.addEventListener("load", () => {
-
-    createFutura();
-
-    deactivateFutura();
-
-});
-
-// =====================================================
-// INTERCETTA SEND
-// =====================================================
-
-const originalSend = window.send;
-
-window.send = async function () {
-
-    const input = document.getElementById("input");
-
-    if (!input) {
-
-        if (originalSend) {
-            return originalSend();
-        }
-
-        return;
-    }
-
-    const text = input.value.trim();
-
-    if (futuraCommand(text)) {
-
-        input.value = "";
-
-        return;
-    }
-
-    if (originalSend) {
-        return originalSend();
-    }
-
-};
