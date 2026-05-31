@@ -1,0 +1,441 @@
+/* =====================================================
+   FUTURA OS - HOLOGRAPHIC INTERFACE
+   ===================================================== */
+
+:root{
+    --futura-primary:#4cc9f0;
+    --futura-secondary:#0ea5e9;
+    --futura-glow:#38bdf8;
+    --futura-bg:rgba(0,0,0,.25);
+    --futura-border:rgba(76,201,240,.35);
+}
+
+/* =====================================================
+   MAIN OVERLAY
+   ===================================================== */
+
+#futura{
+    position:fixed;
+    inset:0;
+    z-index:99999;
+    pointer-events:none;
+    display:none;
+}
+
+.futura-overlay{
+    position:absolute;
+    inset:0;
+    overflow:hidden;
+}
+
+/* =====================================================
+   GRID
+   ===================================================== */
+
+.futura-grid{
+    position:absolute;
+    inset:0;
+
+    background:
+        linear-gradient(
+            rgba(76,201,240,.06) 1px,
+            transparent 1px
+        ),
+        linear-gradient(
+            90deg,
+            rgba(76,201,240,.06) 1px,
+            transparent 1px
+        );
+
+    background-size:50px 50px;
+
+    animation:gridMove 15s linear infinite;
+}
+
+@keyframes gridMove{
+    from{
+        transform:translateY(0);
+    }
+    to{
+        transform:translateY(50px);
+    }
+}
+
+/* =====================================================
+   SCAN LINE
+   ===================================================== */
+
+.futura-scan{
+    position:absolute;
+    left:0;
+    top:-10%;
+    width:100%;
+    height:20%;
+
+    background:
+    linear-gradient(
+        to bottom,
+        transparent,
+        rgba(76,201,240,.15),
+        transparent
+    );
+
+    animation:scan 6s linear infinite;
+}
+
+@keyframes scan{
+    from{
+        transform:translateY(-200%);
+    }
+
+    to{
+        transform:translateY(700%);
+    }
+}
+
+/* =====================================================
+   CENTER CORE
+   ===================================================== */
+
+.futura-center{
+    position:absolute;
+
+    top:50%;
+    left:50%;
+
+    transform:translate(-50%,-50%);
+
+    text-align:center;
+}
+
+.futura-title{
+
+    font-size:64px;
+    font-weight:700;
+    letter-spacing:10px;
+
+    color:var(--futura-primary);
+
+    text-shadow:
+    0 0 10px var(--futura-primary),
+    0 0 20px var(--futura-primary),
+    0 0 40px var(--futura-primary);
+
+    animation:pulseTitle 2.5s infinite;
+}
+
+.futura-subtitle{
+
+    margin-top:10px;
+
+    font-size:16px;
+
+    color:white;
+
+    letter-spacing:4px;
+
+    opacity:.8;
+}
+
+@keyframes pulseTitle{
+
+    0%{
+        opacity:.8;
+        transform:scale(1);
+    }
+
+    50%{
+        opacity:1;
+        transform:scale(1.03);
+    }
+
+    100%{
+        opacity:.8;
+        transform:scale(1);
+    }
+}
+
+/* =====================================================
+   HOLOGRAPHIC CIRCLE
+   ===================================================== */
+
+.futura-center::before{
+
+    content:"";
+
+    position:absolute;
+
+    width:350px;
+    height:350px;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    border-radius:50%;
+
+    border:2px solid rgba(76,201,240,.4);
+
+    box-shadow:
+    0 0 20px rgba(76,201,240,.4),
+    inset 0 0 20px rgba(76,201,240,.2);
+
+    animation:rotateRing 12s linear infinite;
+}
+
+.futura-center::after{
+
+    content:"";
+
+    position:absolute;
+
+    width:500px;
+    height:500px;
+
+    left:50%;
+    top:50%;
+
+    transform:translate(-50%,-50%);
+
+    border-radius:50%;
+
+    border:1px dashed rgba(76,201,240,.2);
+
+    animation:rotateRingReverse 20s linear infinite;
+}
+
+@keyframes rotateRing{
+
+    from{
+        transform:
+        translate(-50%,-50%)
+        rotate(0deg);
+    }
+
+    to{
+        transform:
+        translate(-50%,-50%)
+        rotate(360deg);
+    }
+}
+
+@keyframes rotateRingReverse{
+
+    from{
+        transform:
+        translate(-50%,-50%)
+        rotate(360deg);
+    }
+
+    to{
+        transform:
+        translate(-50%,-50%)
+        rotate(0deg);
+    }
+}
+
+/* =====================================================
+   HUD PANELS
+   ===================================================== */
+
+.futura-panel{
+
+    position:absolute;
+
+    width:280px;
+
+    padding:20px;
+
+    background:var(--futura-bg);
+
+    border:1px solid var(--futura-border);
+
+    backdrop-filter:blur(12px);
+
+    border-radius:20px;
+
+    color:white;
+
+    box-shadow:
+    0 0 25px rgba(76,201,240,.15);
+}
+
+.futura-panel h3{
+
+    color:var(--futura-primary);
+
+    margin-bottom:10px;
+
+    letter-spacing:2px;
+}
+
+.panel-left{
+    left:30px;
+    top:120px;
+}
+
+.panel-right{
+    right:30px;
+    top:120px;
+}
+
+.panel-bottom-left{
+    left:30px;
+    bottom:40px;
+}
+
+.panel-bottom-right{
+    right:30px;
+    bottom:40px;
+}
+
+/* =====================================================
+   AVATAR
+   ===================================================== */
+
+#futura-avatar{
+
+    position:fixed;
+
+    right:30px;
+    bottom:30px;
+
+    width:180px;
+    height:180px;
+
+    z-index:100000;
+
+    display:none;
+}
+
+#futura-avatar img{
+
+    width:100%;
+    height:100%;
+
+    object-fit:cover;
+
+    border-radius:50%;
+
+    border:2px solid var(--futura-primary);
+
+    box-shadow:
+    0 0 30px var(--futura-primary),
+    0 0 60px rgba(76,201,240,.5);
+}
+
+#futura-avatar.talking{
+
+    animation:avatarPulse .5s infinite;
+}
+
+@keyframes avatarPulse{
+
+    0%{
+        transform:scale(1);
+    }
+
+    50%{
+        transform:scale(1.08);
+    }
+
+    100%{
+        transform:scale(1);
+    }
+}
+
+/* =====================================================
+   PARTICLES
+   ===================================================== */
+
+.futura-particle{
+
+    position:absolute;
+
+    width:4px;
+    height:4px;
+
+    border-radius:50%;
+
+    background:var(--futura-primary);
+
+    box-shadow:
+    0 0 10px var(--futura-primary);
+
+    animation:particleFloat 10s linear infinite;
+}
+
+@keyframes particleFloat{
+
+    from{
+        transform:
+        translateY(100vh);
+        opacity:0;
+    }
+
+    20%{
+        opacity:1;
+    }
+
+    80%{
+        opacity:1;
+    }
+
+    to{
+        transform:
+        translateY(-120vh);
+        opacity:0;
+    }
+}
+
+/* =====================================================
+   STATUS
+   ===================================================== */
+
+.futura-status{
+
+    position:absolute;
+
+    top:20px;
+    right:20px;
+
+    color:#22c55e;
+
+    font-size:14px;
+
+    letter-spacing:2px;
+
+    text-shadow:
+    0 0 10px #22c55e;
+}
+
+/* =====================================================
+   MOBILE
+   ===================================================== */
+
+@media(max-width:768px){
+
+    .futura-title{
+        font-size:38px;
+    }
+
+    .futura-center::before{
+        width:220px;
+        height:220px;
+    }
+
+    .futura-center::after{
+        width:300px;
+        height:300px;
+    }
+
+    .futura-panel{
+        display:none;
+    }
+
+    #futura-avatar{
+        width:120px;
+        height:120px;
+    }
+}
