@@ -291,17 +291,29 @@ def chat():
     user = users.get(session["user"])
     plan = user.get("plan", "Free")
 
-if plan != "Admin":
+    if plan != "Admin":
 
-    limit = PLANS[plan]["daily_limit"]
+        limit = PLANS[plan]["daily_limit"]
 
-    if user.get("daily_messages", 0) >= limit:
+        if user.get("daily_messages", 0) >= limit:
+
+            return jsonify({
+                "response": f"❌ Hai raggiunto il limite di {limit} messaggi giornalieri."
+            })
+
+    user["daily_messages"] = user.get("daily_messages", 0) + 1
+
+    history = user.get("history", [])
+    memory = user.get("memory", [])
+    emotion = user.get("emotion", "neutral")
+
+    prompt = request.form.get("prompt", "").strip()
+
+    if not prompt:
 
         return jsonify({
-            "response":
-            f"❌ Hai raggiunto il limite di {limit} messaggi giornalieri."
+            "response": "❌ Scrivi qualcosa"
         })
-
     user["daily_messages"] = user.get(
         "daily_messages", 0
     ) + 1
