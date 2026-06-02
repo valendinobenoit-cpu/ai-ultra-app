@@ -1,9 +1,9 @@
 {
-"admin": {
-    "password": "1234",
-    "plan": "Admin",
-    "role": "admin",
-    "messages": 10002345
+    "admin": {
+        "password": "1234",
+        "plan": "Admin",
+        "role": "admin",
+        "messages": 10002345
 }
     },
     "admin@ai.com": {
