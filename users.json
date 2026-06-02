@@ -2,7 +2,8 @@
     "admin": {
         "password": "1234",
         "plan": "free",
-        "messages": 1
+        "messages": 10002345
+    
     },
     "admin@ai.com": {
         "password": "scrypt:32768:8:1$Ess7l5FIB9Djw8Ae$a405de7dc66086b33a4488d66e9191b5c6253d9c7631e1d3d7235e96e2dc0d29611033508f0cd23e02482462d48dd2562c5ca3315df376ad8c43fe314537bb43",
