@@ -44,6 +44,34 @@ MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 USERS_FILE = "users.json"
 
 # =====================================================
+# PLANS
+# =====================================================
+
+PLANS = {
+    "Free": {
+        "daily_limit": 30
+    },
+    "Pro": {
+        "daily_limit": 500
+    },
+    "Ultra": {
+        "daily_limit": 5000
+    },
+    "Enterprise": {
+        "daily_limit": 999999
+    },
+    "Admin": {
+        "daily_limit": -1
+    }
+}
+
+# =====================================================
+# DATABASE
+# =====================================================
+
+def load_users():
+    ...
+# =====================================================
 # DATABASE
 # =====================================================
 
@@ -261,6 +289,22 @@ def chat():
     users = load_users()
 
     user = users.get(session["user"])
+    plan = user.get("plan", "Free")
+
+if plan != "Admin":
+
+    limit = PLANS[plan]["daily_limit"]
+
+    if user.get("daily_messages", 0) >= limit:
+
+        return jsonify({
+            "response":
+            f"❌ Hai raggiunto il limite di {limit} messaggi giornalieri."
+        })
+
+    user["daily_messages"] = user.get(
+        "daily_messages", 0
+    ) + 1
 
     history = user.get("history", [])
     memory = user.get("memory", [])
