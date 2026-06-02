@@ -6,6 +6,7 @@ import requests
 import replicate
 
 from dotenv import load_dotenv
+from actions import execute_action
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
@@ -331,6 +332,48 @@ def chat():
         })
 
     lower_prompt = prompt.lower()
+
+    # APRI GOOGLE
+    if "apri google" in lower_prompt:
+
+        result = execute_action("open_google")
+
+        return jsonify({
+            "response": result
+        })
+
+    # APRI YOUTUBE
+    if "apri youtube" in lower_prompt:
+
+        result = execute_action("open_youtube")
+
+        return jsonify({
+            "response": result
+        })
+
+    # resto della chat AI
+    history = user.get("history", [])
+
+    history.append({
+        "role": "user",
+        "content": prompt
+    })
+
+    reply = ask_ai(history[-10:])
+
+    history.append({
+        "role": "assistant",
+        "content": reply
+    })
+
+    user["history"] = history
+    users[session["user"]] = user
+
+    save_users(users)
+
+    return jsonify({
+        "response": reply
+    })
 
     # =================================================
     # EMOTION DETECTION
