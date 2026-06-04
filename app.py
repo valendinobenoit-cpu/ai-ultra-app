@@ -6,7 +6,7 @@ import requests
 import replicate
 
 from dotenv import load_dotenv
-from actions import execute_action
+# from actions import execute_action   # rimossa o commentata: non serve sul server remoto per aprire browser
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 from datetime import timedelta
@@ -38,7 +38,8 @@ app.config.update(
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 
-os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
+if REPLICATE_API_TOKEN:
+    os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
 
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
@@ -49,21 +50,11 @@ USERS_FILE = "users.json"
 # =====================================================
 
 PLANS = {
-    "Free": {
-        "daily_limit": 30
-    },
-    "Pro": {
-        "daily_limit": 500
-    },
-    "Ultra": {
-        "daily_limit": 5000
-    },
-    "Enterprise": {
-        "daily_limit": 999999
-    },
-    "Admin": {
-        "daily_limit": -1
-    }
+    "Free": {"daily_limit": 30},
+    "Pro": {"daily_limit": 500},
+    "Ultra": {"daily_limit": 5000},
+    "Enterprise": {"daily_limit": 999999},
+    "Admin": {"daily_limit": -1}
 }
 
 # =====================================================
@@ -71,26 +62,15 @@ PLANS = {
 # =====================================================
 
 def load_users():
-    ...
-# =====================================================
-# DATABASE
-# =====================================================
-
-def load_users():
-
     if not os.path.exists(USERS_FILE):
         return {}
-
     try:
-
         with open(USERS_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
-
-    except:
+    except Exception:
         return {}
 
 def save_users(users):
-
     with open(USERS_FILE, "w", encoding="utf-8") as f:
         json.dump(users, f, indent=4, ensure_ascii=False)
 
@@ -99,185 +79,110 @@ def save_users(users):
 # =====================================================
 
 def login_required(f):
-
     @wraps(f)
     def wrapper(*args, **kwargs):
-
         if "user" not in session:
             return redirect("/")
-
         return f(*args, **kwargs)
-
     return wrapper
 
 def get_user():
-
     users = load_users()
-
     return users.get(session.get("user"))
 
 # =====================================================
-# AI CHAT
+# AI CHAT (Mistral)
 # =====================================================
 
 def ask_ai(messages):
-
     headers = {
         "Authorization": f"Bearer {MISTRAL_API_KEY}",
         "Content-Type": "application/json"
     }
-
     payload = {
         "model": "mistral-small-latest",
         "messages": messages,
         "temperature": 0.7
     }
-
     try:
-
-        r = requests.post(
-            MISTRAL_URL,
-            headers=headers,
-            json=payload,
-            timeout=60
-        )
-
+        r = requests.post(MISTRAL_URL, headers=headers, json=payload, timeout=60)
         data = r.json()
-
         print("MISTRAL RESPONSE:", data)
-
-        if "choices" in data:
-
+        if "choices" in data and len(data["choices"]) > 0:
             return data["choices"][0]["message"]["content"]
-
         return "⚠️ Errore AI"
-
     except Exception as e:
-
         print("AI ERROR:", e)
-
         return "⚠️ Server occupato"
 
 # =====================================================
-# IMAGE GENERATION
+# IMAGE GENERATION (Replicate)
 # =====================================================
 
 def generate_image(prompt):
-
     try:
-
         output = replicate.run(
             "black-forest-labs/flux-schnell",
-            input={
-                "prompt": prompt
-            }
+            input={"prompt": prompt}
         )
-
         print("IMAGE OUTPUT:", output)
-
-        # Se replicate ritorna lista
-        if isinstance(output, list):
-
-            first = output[0]
-
-            return str(first)
-
-        # Se ritorna stringa diretta
+        if isinstance(output, list) and len(output) > 0:
+            return str(output[0])
         return str(output)
-
     except Exception as e:
-
         print("ERRORE IMMAGINE:", e)
-
         return None
 
 # =====================================================
-# HOME
+# ROUTES: HOME / AUTH
 # =====================================================
 
 @app.route("/")
 def home():
-
     if "user" in session:
         return redirect("/dashboard")
-
     return render_template("login.html")
-
-# =====================================================
-# REGISTER PAGE
-# =====================================================
 
 @app.route("/register-page")
 def register_page():
-
     return render_template("register.html")
-
-# =====================================================
-# REGISTER
-# =====================================================
 
 @app.route("/register", methods=["POST"])
 def register():
-
     users = load_users()
-
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "").strip()
-
     if not email or not password:
-
         return "❌ Compila tutti i campi"
-
     if email in users:
-
         return "❌ Utente già esistente"
-
     users[email] = {
         "password": generate_password_hash(password),
         "history": [],
         "messages": 0,
+        "daily_messages": 0,
         "plan": "Free",
         "memory": [],
         "emotion": "neutral"
     }
-
     save_users(users)
-
     return redirect("/")
-
-# =====================================================
-# LOGIN
-# =====================================================
 
 @app.route("/login", methods=["POST"])
 def login():
-
     users = load_users()
-
     email = request.form.get("email", "").strip().lower()
     password = request.form.get("password", "").strip()
-
     if email in users and check_password_hash(users[email]["password"], password):
-
         session["user"] = email
         session.permanent = True
-
         return redirect("/dashboard")
-
     return "❌ Login fallito"
-
-# =====================================================
-# DASHBOARD
-# =====================================================
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
-
-    return render_template(
-        "dashboard.html",
-        user=get_user()
-    )
+    return render_template("dashboard.html", user=get_user())
 
 # =====================================================
 # CHAT
@@ -286,185 +191,99 @@ def dashboard():
 @app.route("/chat", methods=["POST"])
 @login_required
 def chat():
-
     users = load_users()
-
     user = users.get(session["user"])
+    if not user:
+        return jsonify({"response": "❌ Utente non trovato"}), 400
+
     plan = user.get("plan", "Free")
 
+    # controllo limite giornaliero (Admin bypass)
     if plan != "Admin":
+        limit = PLANS.get(plan, {}).get("daily_limit", 0)
+        if limit >= 0 and user.get("daily_messages", 0) >= limit:
+            return jsonify({"response": f"❌ Hai raggiunto il limite di {limit} messaggi giornalieri."})
 
-        limit = PLANS[plan]["daily_limit"]
-
-        if user.get("daily_messages", 0) >= limit:
-
-            return jsonify({
-                "response": f"❌ Hai raggiunto il limite di {limit} messaggi giornalieri."
-            })
-
-    user["daily_messages"] = user.get("daily_messages", 0) + 1
-
-    history = user.get("history", [])
-    memory = user.get("memory", [])
-    emotion = user.get("emotion", "neutral")
-
+    # Leggi prompt
     prompt = request.form.get("prompt", "").strip()
-
     if not prompt:
-
-        return jsonify({
-            "response": "❌ Scrivi qualcosa"
-        })
-    user["daily_messages"] = user.get(
-        "daily_messages", 0
-    ) + 1
-
-    history = user.get("history", [])
-    memory = user.get("memory", [])
-    emotion = user.get("emotion", "neutral")
-
-    prompt = request.form.get("prompt", "").strip()
-
-    if not prompt:
-
-        return jsonify({
-            "response": "❌ Scrivi qualcosa"
-        })
+        return jsonify({"response": "❌ Scrivi qualcosa"})
 
     lower_prompt = prompt.lower()
 
-    # APRI GOOGLE
+    # Incrementa contatore messaggi una sola volta per richiesta valida
+    user["daily_messages"] = user.get("daily_messages", 0) + 1
+
+    # Comandi speciali che devono restituire una URL al client
     if "apri google" in lower_prompt:
+        users[session["user"]] = user
+        save_users(users)
+        return jsonify({"response": "🌍 Sto aprendo Google...", "url": "https://www.google.com"})
 
-        result = execute_action("open_google")
-
-        return jsonify({
-            "response": result
-        })
-
-    # APRI YOUTUBE
     if "apri youtube" in lower_prompt:
+        users[session["user"]] = user
+        save_users(users)
+        return jsonify({"response": "🎥 Sto aprendo YouTube...", "url": "https://www.youtube.com"})
 
-        result = execute_action("open_youtube")
-
-        return jsonify({
-            "response": result
-        })
-
-    # resto della chat AI
+    # Inizializza history/memory/emotion
     history = user.get("history", [])
+    memory = user.get("memory", [])
+    emotion = user.get("emotion", "neutral")
 
-    history.append({
-        "role": "user",
-        "content": prompt
-    })
-
-    reply = ask_ai(history[-10:])
-
-    history.append({
-        "role": "assistant",
-        "content": reply
-    })
-
-    user["history"] = history
-    users[session["user"]] = user
-
-    save_users(users)
-
-    return jsonify({
-        "response": reply
-    })
+    # Aggiungi messaggio utente alla history (prima della chiamata AI)
+    history.append({"role": "user", "content": prompt})
 
     # =================================================
     # EMOTION DETECTION
     # =================================================
-
-    sad_words = [
-        "triste",
-        "depresso",
-        "male",
-        "piango",
-        "solo",
-        "vuoto"
-    ]
-
-    happy_words = [
-        "felice",
-        "fantastico",
-        "bellissimo",
-        "wow",
-        "contento"
-    ]
-
-    angry_words = [
-        "odio",
-        "arrabbiato",
-        "nervoso",
-        "schifo"
-    ]
+    sad_words = ["triste", "depresso", "male", "piango", "solo", "vuoto"]
+    happy_words = ["felice", "fantastico", "bellissimo", "wow", "contento"]
+    angry_words = ["odio", "arrabbiato", "nervoso", "schifo"]
 
     if any(x in lower_prompt for x in sad_words):
-
         user["emotion"] = "sad"
-
     elif any(x in lower_prompt for x in happy_words):
-
         user["emotion"] = "happy"
-
     elif any(x in lower_prompt for x in angry_words):
-
         user["emotion"] = "angry"
-
     else:
-
         user["emotion"] = "neutral"
 
     emotion = user["emotion"]
 
     # =================================================
-    # IMAGE GENERATION
+    # IMAGE GENERATION (se richiesto)
     # =================================================
+    wants_image = any(kw in lower_prompt for kw in [
+        "crea immagine", "genera immagine", "disegna", "creami un'immagine"
+    ])
 
-    if (
-        "crea immagine" in lower_prompt
-        or "genera immagine" in lower_prompt
-        or "disegna" in lower_prompt
-        or "creami un'immagine" in lower_prompt
-    ):
-
-        image = generate_image(prompt)
-
-        if image:
-
-            return jsonify({
-                "response": "🖼️ Immagine generata!",
-                "image": image
-            })
-
-        return jsonify({
-            "response": "❌ Errore generazione immagine"
-        })
+    image_url = None
+    if wants_image:
+        image_url = generate_image(prompt)
+        if image_url is None:
+            # Non interrompiamo il flusso: rispondiamo con errore immagine ma continuiamo con la chat testuale
+            # aggiorna history con eventuale messaggio di errore
+            history.append({"role": "assistant", "content": "❌ Errore generazione immagine"})
+            user["history"] = history
+            users[session["user"]] = user
+            save_users(users)
+            return jsonify({"response": "❌ Errore generazione immagine"})
 
     # =================================================
-    # MEMORY
+    # MEMORY (semplice append se breve)
     # =================================================
-
     if len(prompt) < 120:
-
         memory.append(prompt)
-
     memory = memory[-20:]
-
     user["memory"] = memory
 
     # =================================================
-    # SYSTEM PROMPT
+    # SYSTEM PROMPT + CHIAMATA AI
     # =================================================
-
     system = {
         "role": "system",
         "content": f"""
-
 Sei AI Ultra.
 
 Hai:
@@ -516,39 +335,29 @@ REGOLE:
 - Se serve usa emoji
 - Se l'utente chiede codice usa markdown
 - Rispondi in italiano
-
 """
     }
 
-    # =================================================
-    # HISTORY
-    # =================================================
-
-    history.append({
-        "role": "user",
-        "content": prompt
-    })
-
+    # Limita la history inviata all'AI (es. ultimi 6 messaggi)
     messages = [system] + history[-6:]
 
     reply = ask_ai(messages)
 
-    history.append({
-        "role": "assistant",
-        "content": reply
-    })
+    # Aggiungi risposta AI alla history
+    history.append({"role": "assistant", "content": reply})
 
+    # Aggiorna contatori e salva
     user["history"] = history
-
-    user["messages"] += 1
-
+    user["messages"] = user.get("messages", 0) + 1
     users[session["user"]] = user
-
     save_users(users)
 
-    return jsonify({
-        "response": reply
-    })
+    # Costruisci risposta JSON: testo + eventuale immagine
+    response_payload = {"response": reply}
+    if image_url:
+        response_payload["image"] = image_url
+
+    return jsonify(response_payload)
 
 # =====================================================
 # PDF GENERATOR
@@ -557,40 +366,22 @@ REGOLE:
 @app.route("/generate-pdf", methods=["POST"])
 @login_required
 def generate_pdf():
-
     text = request.form.get("text", "")
-
     filename = f"{uuid.uuid4().hex}.pdf"
-
     doc = SimpleDocTemplate(filename)
-
     styles = getSampleStyleSheet()
-
     content = []
-
     for line in text.split("\n"):
-
-        content.append(
-            Paragraph(line, styles["Normal"])
-        )
-
+        content.append(Paragraph(line, styles["Normal"]))
     doc.build(content)
-
     @after_this_request
     def remove(response):
-
         try:
             os.remove(filename)
-
         except:
             pass
-
         return response
-
-    return send_file(
-        filename,
-        as_attachment=True
-    )
+    return send_file(filename, as_attachment=True)
 
 # =====================================================
 # VOICE CHAT
@@ -599,39 +390,24 @@ def generate_pdf():
 @app.route("/voice-chat", methods=["POST"])
 @login_required
 def voice_chat():
-
     text = request.form.get("text", "")
-
     if not text:
-
         return "❌ Nessun testo", 400
-
-    reply = ask_ai([
-        {
-            "role": "user",
-            "content": text
-        }
-    ])
-
+    reply = ask_ai([{"role": "user", "content": text}])
     filename = f"{uuid.uuid4().hex}.mp3"
-
-    gTTS(reply, lang="it").save(filename)
-
+    try:
+        gTTS(reply, lang="it").save(filename)
+    except Exception as e:
+        print("TTS ERROR:", e)
+        return "❌ Errore TTS", 500
     @after_this_request
     def remove(response):
-
         try:
             os.remove(filename)
-
         except:
             pass
-
         return response
-
-    return send_file(
-        filename,
-        mimetype="audio/mpeg"
-    )
+    return send_file(filename, mimetype="audio/mpeg")
 
 # =====================================================
 # LOGOUT
@@ -640,9 +416,7 @@ def voice_chat():
 @app.route("/logout")
 @login_required
 def logout():
-
     session.clear()
-
     return redirect("/")
 
 # =====================================================
@@ -650,7 +424,4 @@ def logout():
 # =====================================================
 
 if __name__ == "__main__":
-
-    app.run(
-        debug=True
-    )
+    app.run(debug=True)
