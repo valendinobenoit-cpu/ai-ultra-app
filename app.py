@@ -38,7 +38,9 @@ app.config.update(
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 
-os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
+# Imposta la variabile d'ambiente solo se presente
+if REPLICATE_API_TOKEN:
+    os.environ["REPLICATE_API_TOKEN"] = REPLICATE_API_TOKEN
 
 MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
 
@@ -66,12 +68,6 @@ PLANS = {
     }
 }
 
-# =====================================================
-# DATABASE
-# =====================================================
-
-def load_users():
-    ...
 # =====================================================
 # DATABASE
 # =====================================================
@@ -147,7 +143,6 @@ def ask_ai(messages):
         print("MISTRAL RESPONSE:", data)
 
         if "choices" in data:
-
             return data["choices"][0]["message"]["content"]
 
         return "⚠️ Errore AI"
@@ -238,7 +233,8 @@ def register():
         "messages": 0,
         "plan": "Free",
         "memory": [],
-        "emotion": "neutral"
+        "emotion": "neutral",
+        "daily_messages": 0
     }
 
     save_users(users)
@@ -302,78 +298,46 @@ def chat():
                 "response": f"❌ Hai raggiunto il limite di {limit} messaggi giornalieri."
             })
 
+    prompt = request.form.get("prompt", "").strip()
+
+    if not prompt:
+
+        return jsonify({
+            "response": "❌ Scrivi qualcosa"
+        })
+
+    # Incrementa daily_messages una sola volta
     user["daily_messages"] = user.get("daily_messages", 0) + 1
 
     history = user.get("history", [])
     memory = user.get("memory", [])
     emotion = user.get("emotion", "neutral")
 
-    prompt = request.form.get("prompt", "").strip()
-
-    if not prompt:
-
-        return jsonify({
-            "response": "❌ Scrivi qualcosa"
-        })
-    user["daily_messages"] = user.get(
-        "daily_messages", 0
-    ) + 1
-
-    history = user.get("history", [])
-    memory = user.get("memory", [])
-    emotion = user.get("emotion", "neutral")
-
-    prompt = request.form.get("prompt", "").strip()
-
-    if not prompt:
-
-        return jsonify({
-            "response": "❌ Scrivi qualcosa"
-        })
-
     lower_prompt = prompt.lower()
 
-    # APRI GOOGLE
+    # APRI GOOGLE / YOUTUBE: restituisci azione al client (non aprire il browser server-side)
     if "apri google" in lower_prompt:
 
         result = execute_action("open_google")
 
-        return jsonify({
-            "response": result
-        })
+        # Se execute_action restituisce una URL o dict, normalizza la risposta
+        if isinstance(result, dict):
+            return jsonify(result)
+        elif isinstance(result, str) and result.startswith("http"):
+            return jsonify({"action": "open_url", "url": result})
+        else:
+            return jsonify({"action": "open_url", "url": "https://www.google.com"})
 
-    # APRI YOUTUBE
     if "apri youtube" in lower_prompt:
 
         result = execute_action("open_youtube")
 
-        return jsonify({
-            "response": result
-        })
-
-    # resto della chat AI
-    history = user.get("history", [])
-
-    history.append({
-        "role": "user",
-        "content": prompt
-    })
-
-    reply = ask_ai(history[-10:])
-
-    history.append({
-        "role": "assistant",
-        "content": reply
-    })
-
-    user["history"] = history
-    users[session["user"]] = user
-
-    save_users(users)
-
-    return jsonify({
-        "response": reply
-    })
+        if isinstance(result, dict):
+            return jsonify(result)
+        elif isinstance(result, str) and result.startswith("http"):
+            return jsonify({"action": "open_url", "url": result})
+        else:
+            return jsonify({"action": "open_url", "url": "https://www.youtube.com"})
 
     # =================================================
     # EMOTION DETECTION
@@ -419,8 +383,6 @@ def chat():
 
         user["emotion"] = "neutral"
 
-    emotion = user["emotion"]
-
     # =================================================
     # IMAGE GENERATION
     # =================================================
@@ -435,12 +397,16 @@ def chat():
         image = generate_image(prompt)
 
         if image:
-
+            # salva stato prima di rispondere
+            users[session["user"]] = user
+            save_users(users)
             return jsonify({
                 "response": "🖼️ Immagine generata!",
                 "image": image
             })
 
+        users[session["user"]] = user
+        save_users(users)
         return jsonify({
             "response": "❌ Errore generazione immagine"
         })
@@ -450,7 +416,6 @@ def chat():
     # =================================================
 
     if len(prompt) < 120:
-
         memory.append(prompt)
 
     memory = memory[-20:]
@@ -474,10 +439,10 @@ Hai:
 - stile futuristico
 
 EMOZIONE UTENTE:
-{emotion}
+{user.get('emotion', 'neutral')}
 
 MEMORIA:
-{memory}
+{user.get('memory', [])}
 
 COMPORTAMENTO:
 - Ricorda dettagli utenti
@@ -521,7 +486,7 @@ REGOLE:
     }
 
     # =================================================
-    # HISTORY
+    # HISTORY e chiamata AI
     # =================================================
 
     history.append({
@@ -540,7 +505,7 @@ REGOLE:
 
     user["history"] = history
 
-    user["messages"] += 1
+    user["messages"] = user.get("messages", 0) + 1
 
     users[session["user"]] = user
 
@@ -651,6 +616,9 @@ def logout():
 
 if __name__ == "__main__":
 
+    port = int(os.environ.get("PORT", 5000))
+
     app.run(
-        debug=True
+        host="0.0.0.0",
+        port=port
     )
